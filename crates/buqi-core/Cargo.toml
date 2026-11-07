@@ -1,0 +1,9 @@
+[package]
+name = "buqi-core"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+zenoh.workspace = true
+zenoh-plugin-dds.workspace = true

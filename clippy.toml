@@ -1,0 +1,2 @@
+# Clippy configuration for buqi
+# Lint thresholds are controlled via CLI flags in .justfile

@@ -1,0 +1,21 @@
+[workspace]
+resolver = "2"
+members = [
+  "crates/buqi-cli",
+  "crates/buqi-client",
+  "crates/buqi-core",
+  "crates/buqi-server",
+]
+
+[workspace.package]
+edition = "2024"
+version = "0.1.0"
+license = "Apache-2.0"
+
+[workspace.dependencies]
+buqi-core = { path = "crates/buqi-core" }
+
+# Zenoh + DDS 桥接。zenoh-plugin-dds 以静态库嵌入（default-features = false
+# 关闭 dynamic_plugin），配套 zenoh 需开启 plugins + unstable。
+zenoh = { version = "1.10.2", features = ["plugins", "unstable"] }
+zenoh-plugin-dds = { version = "1.10.2", default-features = false }
