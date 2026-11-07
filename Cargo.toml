@@ -19,3 +19,7 @@ buqi-core = { path = "crates/buqi-core" }
 # 关闭 dynamic_plugin），配套 zenoh 需开启 plugins + unstable。
 zenoh = { version = "1.10.2", features = ["plugins", "unstable"] }
 zenoh-plugin-dds = { version = "1.10.2", default-features = false }
+
+# GStreamer 官方 Rust bindings（gstreamer-rs，包装系统 GStreamer，
+# 需在 devenv 中提供 gstreamer / gst-plugins-base / glib）。
+gstreamer = "0.25"

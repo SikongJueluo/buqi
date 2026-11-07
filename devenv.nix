@@ -12,6 +12,11 @@
     cmake
     libclang
     pkg-config
+    # gstreamer crate（gstreamer-rs）包装系统 GStreamer；glib 供 glib-sys
+    # 等 bindings 解析 glib-2.0.pc。
+    gst_all_1.gstreamer
+    gst_all_1.gst-plugins-base
+    glib
   ];
 
   # bindgen 通过 LIBCLANG_PATH 定位 libclang.so（NixOS 非标准路径）。
