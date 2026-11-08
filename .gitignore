@@ -52,4 +52,7 @@ devenv.local.yaml
 .env
 /target/
 **/target/
+.venv
+__pycache__/
+*.pyc
 .dsh/

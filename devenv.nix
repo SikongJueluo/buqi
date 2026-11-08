@@ -17,6 +17,8 @@
     gst_all_1.gstreamer
     gst_all_1.gst-plugins-base
     glib
+    # Python 环境由 sdk/python 下的 uv 全权管理（uv 自带 Python 构建）。
+    uv
   ];
 
   # bindgen 通过 LIBCLANG_PATH 定位 libclang.so（NixOS 非标准路径）。
@@ -61,6 +63,9 @@
       ".env"
       "/target/"
       "**/target/"
+      ".venv"
+      "__pycache__/"
+      "*.pyc"
 
       # vibe code
       ".dsh/"

@@ -1,5 +1,8 @@
 [package]
-name = "buqi-client"
+name = "buqi"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
+
+[dependencies]
+zenoh.workspace = true

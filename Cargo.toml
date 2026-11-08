@@ -2,9 +2,9 @@
 resolver = "2"
 members = [
   "crates/buqi-cli",
-  "crates/buqi-client",
   "crates/buqi-core",
   "crates/buqi-server",
+  "sdk/rust",
 ]
 
 [workspace.package]

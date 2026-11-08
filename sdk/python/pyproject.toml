@@ -1,0 +1,18 @@
+[project]
+name = "buqi"
+version = "0.1.0"
+description = "Buqi robot SDK - unified robot interface over Zenoh"
+readme = "README.md"
+license = "Apache-2.0"
+requires-python = ">=3.10"
+dependencies = [
+    # 官方 zenoh-python（Rust 实现的 Python 绑定），与 Rust 侧 zenoh 1.10.x 对齐
+    "eclipse-zenoh>=1.10.2,<2",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/buqi"]
