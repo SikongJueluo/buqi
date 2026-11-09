@@ -9,6 +9,7 @@
 | 了解项目定位、总体架构或当前进度 | [项目首页](../README.md) |
 | 准备环境、修改代码、选择 just 任务或执行验证 | [开发指南](DEVELOPMENT.md) |
 | 修改某个 crate 或 SDK，判断代码归属 | [开发指南：模块职责与边界](DEVELOPMENT.md#模块职责与边界) |
+| 调研 Server 启动、监听地址输出与可达性边界 | [Server 网络调研](server-network-research.md) |
 | 作为 Agent 开始工作，确认阅读入口与操作边界 | [AGENTS.md](../AGENTS.md) |
 | 新增、拆分或重组文档 | 本文的组织与写作约定 |
 
