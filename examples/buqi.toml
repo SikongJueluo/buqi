@@ -1,0 +1,18 @@
+# Buqi 网关配置示例（TOML，原生 Zenoh 配置格式）。
+#
+# 省略本文件或其中的 listen 时：自动选择本机物理接口上的私有 IPv4，
+# 并额外监听 127.0.0.1，端口 7447。
+#
+# 非空数组会完整替换自动选择；端点必须包含传输前缀。
+# 同时监听局域网地址时，可改成例如：
+# listen = { endpoints = ["tcp/192.168.1.20:7447", "tcp/127.0.0.1:7447"] }
+listen = { endpoints = ["tcp/127.0.0.1:7447"] }
+
+[plugins.dds]
+# 插件默认 0；若设置了有效的 ROS_DOMAIN_ID，默认使用该值。
+domain = 0
+# 其余字段沿用 zenoh-plugin-dds，例如：
+# scope = "robot"
+# allow = "rt/.*"
+# deny = ".*cmd_vel.*"
+# localhost_only = false
