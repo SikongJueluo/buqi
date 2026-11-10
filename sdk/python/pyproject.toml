@@ -16,3 +16,9 @@ build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/buqi"]
+
+[dependency-groups]
+dev = [
+    "cyclonedds>=11.1.0",
+    "pytest>=9.2.0",
+]
