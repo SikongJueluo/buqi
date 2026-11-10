@@ -6,3 +6,5 @@ license.workspace = true
 
 [dependencies]
 buqi-core.workspace = true
+clap.workspace = true
+tokio.workspace = true

@@ -15,10 +15,23 @@ license = "Apache-2.0"
 [workspace.dependencies]
 buqi-core = { path = "crates/buqi-core" }
 
+anyhow = "1"
+# 网关前台运行：Ctrl+C、DDS 观察窗口与任务监督。
+tokio = { version = "1", features = ["macros", "rt-multi-thread", "signal", "time"] }
+clap = { version = "4", features = ["derive"] }
+
 # Zenoh + DDS 桥接。zenoh-plugin-dds 以静态库嵌入（default-features = false
-# 关闭 dynamic_plugin），配套 zenoh 需开启 plugins + unstable。
-zenoh = { version = "1.10.2", features = ["plugins", "unstable"] }
+# 关闭 dynamic_plugin）。dds 插件依赖 zenoh-ext 的 unstable，会间接启用
+# zenoh/internal；buqi-core 直接通过 zenoh::internal 构建 runtime 并接管
+# DDS 任务，因此把 internal 作为显式直接依赖契约。plugins 由插件 crate
+# 自身启用，这里一并声明。
+zenoh = { version = "1.10.2", features = ["plugins", "unstable", "internal"] }
 zenoh-plugin-dds = { version = "1.10.2", default-features = false }
+
+# Linux 网卡快照（getifaddrs）。zenoh-util 已依赖同版本，不引入新构建。
+pnet_datalink = "0.35"
+# 校验 TOML 中的原生 Zenoh 配置、读取 DDS 插件配置。
+serde_json = "1"
 
 # GStreamer 官方 Rust bindings（gstreamer-rs，包装系统 GStreamer，
 # 需在 devenv 中提供 gstreamer / gst-plugins-base / glib）。

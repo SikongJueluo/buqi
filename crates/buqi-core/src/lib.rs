@@ -1,4 +1,9 @@
-//! buqi-core —— 各模块共享的核心库。
+//! buqi-core —— 网关与各模块共享的核心库。
 //!
-//! 目前引入 zenoh 与 zenoh-plugin-dds（DDS 桥接，静态嵌入模式）、gstreamer
-//!（媒体管线），后续在此封装桥接配置、会话管理与媒体处理。
+//! 首版提供前台网关的启动逻辑：TOML 配置解析、Linux IPv4 监听地址选择、
+//! Zenoh Router 启动，以及对 `zenoh-plugin-dds` 主任务的监督。
+//! 媒体处理（GStreamer）仍是后续工作。
+
+mod config;
+pub mod gateway;
+mod net;

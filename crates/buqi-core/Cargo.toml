@@ -5,6 +5,10 @@ edition.workspace = true
 license.workspace = true
 
 [dependencies]
+anyhow.workspace = true
 gstreamer.workspace = true
+pnet_datalink.workspace = true
+serde_json.workspace = true
+tokio.workspace = true
 zenoh.workspace = true
 zenoh-plugin-dds.workspace = true
