@@ -4,7 +4,11 @@
 //! VPN/TUN、容器网桥、veth、bridge、VLAN 等不自动选择，需要时在配置文件中
 //! 显式列出监听端点。
 
-use std::net::{IpAddr, Ipv4Addr};
+use std::collections::BTreeMap;
+use std::net::Ipv4Addr;
+
+use nix::ifaddrs::getifaddrs;
+use nix::net::if_::InterfaceFlags;
 
 /// 一张网络接口在启动时刻的快照。
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -20,26 +24,37 @@ pub struct Interface {
 
 /// 读取当前接口快照。
 ///
-/// 返回 `Err` 表示无法枚举接口；调用方必须把它当作启动失败，而不是
-/// “本机没有局域网地址”。
+/// 返回 `Err` 表示 `getifaddrs` 失败；调用方必须把它当作启动失败，而不是
+/// “本机没有局域网地址”。`getifaddrs` 的错误必须在这里保留——上游封装
+/// （如 `pnet_datalink`）会把失败吞成空列表。
 pub fn snapshot() -> std::io::Result<Vec<Interface>> {
-    Ok(pnet_datalink::interfaces()
-        .into_iter()
-        .map(|interface| Interface {
-            active: interface.is_up() && interface.is_running(),
-            loopback: interface.is_loopback(),
-            physical: is_physical(&interface.name),
-            ipv4: interface
-                .ips
-                .iter()
-                .filter_map(|network| match network.ip() {
-                    IpAddr::V4(address) => Some(address),
-                    IpAddr::V6(_) => None,
-                })
-                .collect(),
-            name: interface.name,
-        })
-        .collect())
+    let addresses = getifaddrs().map_err(std::io::Error::from)?;
+    let mut interfaces: BTreeMap<String, Interface> = BTreeMap::new();
+
+    for address in addresses {
+        let interface = interfaces
+            .entry(address.interface_name.clone())
+            .or_insert_with(|| Interface {
+                name: address.interface_name.clone(),
+                active: false,
+                loopback: false,
+                physical: is_physical(&address.interface_name),
+                ipv4: Vec::new(),
+            });
+
+        interface.active = address.flags.contains(InterfaceFlags::IFF_UP)
+            && address.flags.contains(InterfaceFlags::IFF_RUNNING);
+        interface.loopback = address.flags.contains(InterfaceFlags::IFF_LOOPBACK);
+        if let Some(inet) = address
+            .address
+            .as_ref()
+            .and_then(|address| address.as_sockaddr_in())
+        {
+            interface.ipv4.push(inet.ip());
+        }
+    }
+
+    Ok(interfaces.into_values().collect())
 }
 
 /// 物理网卡在 sysfs 下带有 `device` 链接；veth、bridge、tun、VLAN 等没有。
@@ -128,7 +143,7 @@ mod tests {
     }
 
     #[test]
-    fn snapshot_only_reports_private_candidates() {
+    fn snapshot_reports_actual_interfaces_and_errors_are_fallible() {
         let interfaces = snapshot().expect("读取本机接口快照失败");
         assert!(
             lan_addresses(&interfaces).iter().all(Ipv4Addr::is_private),

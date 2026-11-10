@@ -83,6 +83,14 @@ impl GatewayConfig {
         zenoh
             .insert_json5("scouting/gossip/enabled", "false")
             .map_err(|error| anyhow!("关闭 gossip scouting 失败：{error}"))?;
+        // 绑定失败必须让启动失败：固定“不等待、不后台重试、失败即退出”。
+        // 端点级重试参数在读取监听端点时拒绝。
+        zenoh
+            .insert_json5("listen/timeout_ms", "0")
+            .map_err(|error| anyhow!("固定监听超时失败：{error}"))?;
+        zenoh
+            .insert_json5("listen/exit_on_failure", "true")
+            .map_err(|error| anyhow!("固定监听失败行为失败：{error}"))?;
         zenoh
             .insert_json5("listen/endpoints", &endpoints_json(&endpoints))
             .map_err(|error| anyhow!("设置监听端点失败：{error}"))?;
@@ -151,6 +159,7 @@ fn read_configured_endpoints(zenoh: &zenoh::Config) -> Result<Option<Vec<EndPoin
                 let endpoint = raw.parse::<EndPoint>().map_err(|error| {
                     anyhow!("监听端点 `{raw}` 无效（{error}），需要 `tcp/地址:端口` 形式")
                 })?;
+                reject_endpoint_retry_overrides(&endpoint)?;
                 endpoints.push(endpoint);
             }
             Ok(Some(endpoints))
@@ -159,6 +168,25 @@ fn read_configured_endpoints(zenoh: &zenoh::Config) -> Result<Option<Vec<EndPoin
         Value::Object(_) => Ok(None),
         other => bail!("listen.endpoints 的值类型不受支持：{other}"),
     }
+}
+
+const ENDPOINT_RETRY_KEYS: [&str; 4] = [
+    "exit_on_failure",
+    "retry_period_init_ms",
+    "retry_period_max_ms",
+    "retry_period_increase_factor",
+];
+
+/// 监听端点不能覆盖失败行为：绑定失败必须退出，不能转后台重试。
+fn reject_endpoint_retry_overrides(endpoint: &EndPoint) -> Result<()> {
+    for key in ENDPOINT_RETRY_KEYS {
+        if endpoint.config().get(key).is_some() {
+            bail!(
+                "监听端点 `{endpoint}` 不能设置 `#{key}`：监听失败必须退出，相关参数由 Buqi 固定"
+            );
+        }
+    }
+    Ok(())
 }
 
 fn automatic_endpoints(lan_addresses: &[Ipv4Addr]) -> Vec<EndPoint> {
@@ -269,6 +297,42 @@ mod tests {
         fs::remove_file(&path).ok();
 
         assert!(format!("{error:#}").contains("protocol"), "{error:#}");
+    }
+
+    #[test]
+    fn listen_failure_contract_overrides_global_retry_settings() {
+        let config = config(
+            r#"{ listen: { endpoints: ["tcp/127.0.0.1:8000"], exit_on_failure: false, timeout_ms: 500 } }"#,
+        );
+        let gateway = GatewayConfig::from_zenoh(config, || Ok(Vec::new())).expect("配置解析失败");
+
+        let exit_on_failure: Value =
+            serde_json::from_str(&gateway.zenoh.get_json("listen/exit_on_failure").unwrap())
+                .unwrap();
+        assert_eq!(exit_on_failure, Value::Bool(true));
+        let timeout_ms: Value =
+            serde_json::from_str(&gateway.zenoh.get_json("listen/timeout_ms").unwrap()).unwrap();
+        assert_eq!(timeout_ms, Value::from(0));
+    }
+
+    #[test]
+    fn endpoint_retry_overrides_are_rejected() {
+        let config =
+            config(r#"{ listen: { endpoints: ["tcp/127.0.0.1:8000#exit_on_failure=false"] } }"#);
+        let error = read_configured_endpoints(&config).expect_err("端点级失败重试应被拒绝");
+        assert!(
+            format!("{error:#}").contains("exit_on_failure"),
+            "{error:#}"
+        );
+    }
+
+    #[test]
+    fn endpoint_interface_binding_is_allowed() {
+        let config = config(r#"{ listen: { endpoints: ["tcp/127.0.0.1:8000#iface=lo"] } }"#);
+        let endpoints = read_configured_endpoints(&config)
+            .expect("读取监听端点失败")
+            .expect("应显式配置监听端点");
+        assert_eq!(endpoints[0].to_string(), "tcp/127.0.0.1:8000#iface=lo");
     }
 
     #[test]

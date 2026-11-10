@@ -12,7 +12,8 @@ fn write_config(port: u16) -> std::path::PathBuf {
     std::fs::write(
         &path,
         format!(
-            "listen = {{ endpoints = [\"tcp/127.0.0.1:{port}\"] }}\n\n\
+            "listen = {{ endpoints = [\"tcp/127.0.0.1:{port}\"], \
+             exit_on_failure = false, timeout_ms = 500 }}\n\n\
              [plugins.dds]\ndomain = 199\nlocalhost_only = true\n"
         ),
     )
@@ -21,7 +22,7 @@ fn write_config(port: u16) -> std::path::PathBuf {
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-async fn occupied_port_is_a_startup_error() {
+async fn occupied_port_is_a_startup_error_despite_retry_settings() {
     let port = free_port();
     let config_path = write_config(port);
     let _first = Gateway::start(Some(&config_path))

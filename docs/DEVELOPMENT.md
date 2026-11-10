@@ -74,8 +74,9 @@ uv run python -c "import buqi; print(buqi.__version__)"
 ### Rust
 
 开发中使用 `just check` 快速反馈，完成 Rust 改动后运行 `just quality`。
-现有测试覆盖接口快照选择、配置契约、DDS 任务结局分类与降级、Router 两客户端转发、
-端口占用导致的启动失败，以及 CLI 的错误退出。编译与测试成功不代表 DDS 已与真实机器人互通。
+现有测试覆盖接口快照选择、配置契约（含覆盖 `exit_on_failure`/`timeout_ms` 的敌意配置）、
+DDS 观察窗口内外的失败与 panic、Router 两客户端转发、端口占用导致的启动失败，
+以及 CLI 的错误退出。编译与测试成功不代表 DDS 已与真实机器人互通。
 
 ### Python
 

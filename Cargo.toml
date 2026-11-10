@@ -28,8 +28,9 @@ clap = { version = "4", features = ["derive"] }
 zenoh = { version = "1.10.2", features = ["plugins", "unstable", "internal"] }
 zenoh-plugin-dds = { version = "1.10.2", default-features = false }
 
-# Linux 网卡快照（getifaddrs）。zenoh-util 已依赖同版本，不引入新构建。
-pnet_datalink = "0.35"
+# Linux 网卡快照。直接调用 getifaddrs，保留枚举错误；pnet_datalink 会把
+# getifaddrs 失败吞成空列表，无法区分“枚举失败”和“没有局域网地址”。
+nix = { version = "0.29", features = ["net"] }
 # 校验 TOML 中的原生 Zenoh 配置、读取 DDS 插件配置。
 serde_json = "1"
 
