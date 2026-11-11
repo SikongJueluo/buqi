@@ -11,6 +11,7 @@
 | 修改某个 crate 或 SDK，判断代码归属 | [开发指南：模块职责与边界](DEVELOPMENT.md#模块职责与边界) |
 | 启动网关、配置监听地址或排查 DDS 启动 | [网关启动与配置](gateway.md) |
 | 调研 Server 启动、监听地址输出与可达性边界 | [Server 网络调研](server-network-research.md) |
+| 调研 robot 相机复用、GStreamer 串流与 Zenoh 单帧通道 | [摄像头适配调研](camera-adaptation-research.md) |
 | 作为 Agent 开始工作，确认阅读入口与操作边界 | [AGENTS.md](../AGENTS.md) |
 | 新增、拆分或重组文档 | 本文的组织与写作约定 |
 
