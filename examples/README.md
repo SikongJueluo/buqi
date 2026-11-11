@@ -3,7 +3,9 @@
 当前可直接参考的例子：
 
 - [`subscribe.py`](subscribe.py) —— 用 `buqi.connect` 连接网关并读取一条订阅消息。
+- [`camera_snapshot.py`](camera_snapshot.py) —— 相机单帧查询与持续观测（需启用媒体模块）。
 - [`buqi.toml`](buqi.toml) —— 网关 TOML 配置样例（监听端点与 DDS 选项）。
+- [`buqi-camera.toml`](buqi-camera.toml) —— 在网关配置中加入可选 MJPEG 相机媒体。
 
 规划中、尚未提供：
 

@@ -7,8 +7,11 @@ license.workspace = true
 [dependencies]
 anyhow.workspace = true
 gstreamer.workspace = true
+gstreamer-app.workspace = true
 nix.workspace = true
+serde.workspace = true
 serde_json.workspace = true
 tokio.workspace = true
+toml.workspace = true
 zenoh.workspace = true
 zenoh-plugin-dds.workspace = true

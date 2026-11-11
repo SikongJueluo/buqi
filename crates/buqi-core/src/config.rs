@@ -16,6 +16,7 @@ use serde_json::Value;
 use zenoh::config::EndPoint;
 use zenoh_plugin_dds::config::Config as DdsConfig;
 
+use crate::media::MediaConfig;
 use crate::net;
 
 /// 自动选择监听地址时使用的固定 TCP 端口。
@@ -35,6 +36,7 @@ pub struct GatewayConfig {
     zenoh: zenoh::Config,
     dds: DdsConfig,
     listen_source: ListenSource,
+    media: Option<MediaConfig>,
 }
 
 impl GatewayConfig {
@@ -43,15 +45,16 @@ impl GatewayConfig {
     /// 自动选择只在配置未给出监听端点时才读取本机接口。枚举失败会作为
     /// 启动错误返回，不会退化成“只有回环地址”。
     pub fn load(path: Option<&Path>) -> Result<Self> {
-        let zenoh = match path {
-            Some(path) => zenoh::Config::from_file(path)
-                .map_err(|error| anyhow!("读取配置 {} 失败：{error}", path.display()))?,
-            None => zenoh::Config::default(),
+        let (zenoh, media) = match path {
+            Some(path) => load_document(path)?,
+            None => (zenoh::Config::default(), None),
         };
-        Self::from_zenoh(zenoh, || {
+        let mut config = Self::from_zenoh(zenoh, || {
             let interfaces = net::snapshot()?;
             Ok(net::lan_addresses(&interfaces))
-        })
+        })?;
+        config.media = media;
+        Ok(config)
     }
 
     fn from_zenoh(
@@ -99,12 +102,38 @@ impl GatewayConfig {
             zenoh,
             dds,
             listen_source,
+            media: None,
         })
     }
 
-    pub(crate) fn into_parts(self) -> (zenoh::Config, DdsConfig, ListenSource) {
-        (self.zenoh, self.dds, self.listen_source)
+    pub(crate) fn into_parts(
+        self,
+    ) -> (zenoh::Config, DdsConfig, ListenSource, Option<MediaConfig>) {
+        (self.zenoh, self.dds, self.listen_source, self.media)
     }
+}
+
+/// 读取 TOML：先取出 Buqi 自己的 `media` 区段，再把其余部分交给 Zenoh。
+///
+/// Zenoh 的配置结构拒绝未知顶层字段，因此不能把 `media` 留给它解析。
+fn load_document(path: &Path) -> Result<(zenoh::Config, Option<MediaConfig>)> {
+    let text = std::fs::read_to_string(path)
+        .map_err(|error| anyhow!("读取配置 {} 失败：{error}", path.display()))?;
+    let mut document: toml::Table = toml::from_str(&text)
+        .map_err(|error| anyhow!("解析配置 {} 失败：{error}", path.display()))?;
+
+    let media = document
+        .remove("media")
+        .map(|value| {
+            MediaConfig::from_toml(value)
+                .with_context(|| format!("配置 {} 的 media 区段无效", path.display()))
+        })
+        .transpose()?;
+
+    let json = serde_json::to_string(&document).context("将配置转换为 Zenoh 可读格式失败")?;
+    let zenoh = zenoh::Config::from_json5(&json)
+        .map_err(|error| anyhow!("读取配置 {} 失败：{error}", path.display()))?;
+    Ok((zenoh, media))
 }
 
 /// 取出并移除 `plugins.dds`。
@@ -435,5 +464,84 @@ domain = 199
         let json: Value =
             serde_json::from_str(&gateway.zenoh.get_json("listen/endpoints").unwrap()).unwrap();
         assert_eq!(json, serde_json::json!(["tcp/127.0.0.1:8123"]));
+    }
+
+    #[test]
+    fn media_section_is_extracted_and_not_seen_by_zenoh() {
+        let path =
+            std::env::temp_dir().join(format!("buqi-config-media-{}.toml", std::process::id()));
+        fs::write(
+            &path,
+            r#"
+listen = { endpoints = ["tcp/127.0.0.1:8123"] }
+
+[media.camera]
+id = "pc2-rgb"
+device = "/dev/v4l/by-id/usb-camera-video-index0"
+
+[media.observation]
+rate_hz = 2.5
+max_age_ms = 800
+"#,
+        )
+        .unwrap();
+
+        let gateway = GatewayConfig::load(Some(&path)).expect("加载含媒体的配置失败");
+        fs::remove_file(&path).ok();
+
+        let media = gateway.media.expect("应解析出 media 配置");
+        assert_eq!(media.camera.id, "pc2-rgb");
+        assert_eq!(media.observation.rate_hz, 2.5);
+        assert_eq!(media.max_age(), std::time::Duration::from_millis(800));
+        assert!(gateway.zenoh.get_json("media").is_err());
+    }
+
+    #[test]
+    fn legacy_config_without_media_keeps_working() {
+        let path =
+            std::env::temp_dir().join(format!("buqi-config-legacy-{}.toml", std::process::id()));
+        fs::write(
+            &path,
+            r#"
+listen = { endpoints = ["tcp/127.0.0.1:8123"] }
+
+[plugins.dds]
+domain = 199
+"#,
+        )
+        .unwrap();
+
+        let gateway = GatewayConfig::load(Some(&path)).expect("加载旧配置失败");
+        fs::remove_file(&path).ok();
+
+        assert!(gateway.media.is_none());
+        assert_eq!(gateway.dds.domain, 199);
+    }
+
+    #[test]
+    fn invalid_media_section_blocks_startup() {
+        let path = std::env::temp_dir().join(format!(
+            "buqi-config-media-invalid-{}.toml",
+            std::process::id()
+        ));
+        fs::write(
+            &path,
+            r#"
+[media.camera]
+id = "pc2/rgb"
+device = "/dev/video0"
+"#,
+        )
+        .unwrap();
+
+        let error = GatewayConfig::load(Some(&path))
+            .err()
+            .expect("非法媒体配置应阻止启动");
+        fs::remove_file(&path).ok();
+
+        assert!(
+            format!("{error:#}").contains("media.camera.id"),
+            "{error:#}"
+        );
     }
 }

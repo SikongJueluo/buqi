@@ -1,7 +1,8 @@
 # buqi Python SDK
 
 通过 Zenoh 连接 Buqi 网关（`buqi-server`，Zenoh Router + DDS 插件），
-以可插拔 Adapter 访问不同机器人。首版只提供最小连接入口，统一 `Robot` 接口尚未实现。
+以可插拔 Adapter 访问不同机器人。首版提供最小连接入口与相机图片通道，
+统一 `Robot` 接口尚未实现。
 
 ```sh
 uv sync          # 安装依赖（eclipse-zenoh）
@@ -24,10 +25,29 @@ with buqi.connect("tcp/192.168.1.20:7447") as session:
 - 连接失败或超过约 3 秒抛 `zenoh.ZError`。
 - 载荷是不透明的 `ZBytes`；SDK 不做 DDS/机器人消息解码。
 
+## 相机图片
+
+网关启用 `[media]` 后，SDK 可直接取相机原始 JPEG 与元数据（不解码、不依赖 OpenCV）：
+
+```python
+with buqi.connect("tcp/192.168.1.20:7447") as session:
+    frame = buqi.snapshot(session, "pc2-rgb", timeout=1.0)
+    print(frame.metadata.sequence, frame.metadata.width, len(frame.jpeg))
+
+    with buqi.frames(session, "pc2-rgb") as stream:
+        frame = stream.next(timeout=1.0)
+```
+
+- `snapshot` 返回查询到达前的最新缓存；网关没有首帧或缓存过期时分别抛
+  `CameraNoFrameError` / `CameraStaleFrameError`，等待回复超时抛 `CameraTimeout`。
+- `frames` 的队列只保留最新一帧；`next` 默认 1 秒无新帧即抛 `CameraTimeout`。
+- `CameraFrame.jpeg` 是原始 JPEG 字节；`CameraFrame.metadata` 含会话、序号、尺寸与
+  服务端接收时间。协议与新鲜度语义见[相机媒体文档](../../docs/media.md)。
+
 ## 验证
 
 ```sh
 # 仓库根目录
-just test-python   # 连接失败语义
+just test-python   # 连接失败语义 + 图片协议/错误映射/最新帧行为
 just acceptance    # 真实网关进程 + 模拟 DDS 发布端 + 订阅核对
 ```

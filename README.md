@@ -21,7 +21,8 @@
 - **网关只负责通信**：通过 Zenoh 路由和协议桥接连接各端，不承载厂商 SDK 或机器人业务逻辑。
 - **接口抽象放在客户端**：以 Python SDK 支持 VLA 等应用，通过 Adapter 适配不同机器人；
   Rust SDK 在 Python 接口稳定后对齐。
-- **多媒体单独组织**：规划使用 GStreamer 处理视频等媒体流，与 Zenoh 上的控制、状态通信分开。
+- **多媒体单独组织**：可选媒体模块用 GStreamer 直接采集相机 MJPEG，原始 JPEG 经 Zenoh
+  传输，与 Zenoh 上的控制、状态通信分开。
 
 ### 目标架构
 
@@ -51,7 +52,8 @@ flowchart LR
 
 Zenoh 承担核心通信，DDS 互通复用 `zenoh-plugin-dds`。
 MQTT、ZMQ 等其他协议的接入仍需各自的桥接或适配，不属于当前已实现能力。
-图中媒体连线仅表示逻辑分流，具体传输协议及管线部署位置待定；
+图中媒体连线仅表示逻辑分流：当前由网关内的 GStreamer 采集相机，
+原始 JPEG 经 Zenoh 到达客户端；浏览器 WebRTC 视频尚未实现。
 链路分离不等于带宽、时延或硬实时保证。
 
 ### 两种使用路径
@@ -73,10 +75,15 @@ MQTT、ZMQ 等其他协议的接入仍需各自的桥接或适配，不属于当
   启动契约与限制见[网关文档](docs/gateway.md)。
 - Python SDK 提供 `buqi.connect(endpoint)`，返回官方 `eclipse-zenoh` Session；
   订阅、收发与载荷处理沿用官方 API，尚未提供统一 `Robot` 接口。
+- 可选媒体模块已实现：相机 V4L2 MJPEG 由 GStreamer 唯一采集，原始 JPEG 经 Zenoh
+  提供单帧查询与默认 5 Hz 持续观测；Python SDK 提供 `buqi.snapshot` / `buqi.frames`，
+  默认交付未解码 JPEG。协议与故障语义见[相机媒体](docs/media.md)。
 - 仓库内含本地模拟 DDS 发布端与端到端验收（`just acceptance`），不连接实体机器人。
-- 机器人 Adapter、统一 API、媒体管线与 Rust SDK 能力尚未实现。
+- 浏览器 WebRTC 视频、机器人 Adapter、统一 API 与 Rust SDK 能力尚未实现。
+  媒体模块未在实体相机或 PC2 上验证。
 
-下一步先接入首个机器人 Adapter，再验证真实机器人网络中的发现与状态订阅链路。
+下一步先接入首个机器人 Adapter，再验证真实机器人网络中的发现与状态订阅链路；
+相机模块的实机验收需另行确认设备、旧进程占用与编码器条件。
 
 ## 快速开始
 
@@ -93,6 +100,10 @@ cargo run -p buqi-cli -- server
 ```sh
 cargo run -p buqi-cli -- server --config examples/buqi.toml
 ```
+
+需要相机图片时，把 [`examples/buqi-camera.toml`](examples/buqi-camera.toml) 中的
+`device` 换成实际的 `/dev/v4l/by-id/...`，再以前面同样的方式启动。相机必须原生输出
+MJPEG，且启动前没有旧进程占用设备；配置与图片协议见[相机媒体](docs/media.md)。
 
 另开终端，用 Python SDK 连接并订阅：
 
@@ -118,6 +129,8 @@ with buqi.connect("tcp/127.0.0.1:7447") as session:
 
 - [文档地图与写作约定](docs/README.md)：按任务查找文档，以及如何新增、维护文档。
 - [开发指南](docs/DEVELOPMENT.md)：准备环境、使用 just 任务、理解模块边界与执行验证。
+- [相机媒体](docs/media.md)：启用 MJPEG 相机、图片 key/元数据、单帧与观测语义、
+  故障恢复，以及 WebRTC 的当前状态。
 
 ## 许可证
 

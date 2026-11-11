@@ -17,7 +17,8 @@ direnv allow     # 已启用 direnv 的 shell
 devenv shell
 ```
 
-环境提供 Rust 工具链、cmake/libclang、GStreamer、uv 等依赖。
+环境提供 Rust 工具链、cmake/libclang、GStreamer（含 `gst-plugins-base` 与
+`gst-plugins-good`：v4l2src、jpegenc/jpegdec 等）、uv 等依赖。
 首次构建 DDS 桥接依赖时会编译内置 CycloneDDS，耗时可能较长。
 
 Python SDK 在独立项目目录中初始化：
@@ -55,7 +56,7 @@ uv run python -c "import buqi; print(buqi.__version__)"
 
 | 模块 | 职责 | 边界 |
 | --- | --- | --- |
-| `crates/buqi-core` | 网关配置解析、监听地址选择、Router/DDS 启动与监督，以及后续媒体处理 | 收纳实际复用的逻辑，供 Server/CLI 共用；不把 binary crate 当库 |
+| `crates/buqi-core` | 网关配置、监听地址、Router/DDS 监督与可选媒体模块 | 收纳实际复用的逻辑，供 Server/CLI 共用；不把 binary crate 当库 |
 | `crates/buqi-server` | 网关程序入口，前台运行到 `Ctrl+C` | 薄入口，启动逻辑在 Core；不承载厂商 SDK 或机器人业务 |
 | `crates/buqi-cli` | 维护者命令入口，当前只有 `buqi server` | 负责参数与交互，复用 Core；不做后台服务管理或诊断命令 |
 | `sdk/python` | Python 客户端接口及机器人 Adapter | `buqi.connect` 封装官方 `eclipse-zenoh` 并返回原生 Session；机器人适配留在客户端 |
@@ -76,11 +77,18 @@ uv run python -c "import buqi; print(buqi.__version__)"
 开发中使用 `just check` 快速反馈，完成 Rust 改动后运行 `just quality`。
 现有测试覆盖接口快照选择、配置契约（含覆盖 `exit_on_failure`/`timeout_ms` 的敌意配置）、
 DDS 观察窗口内外的失败与 panic、Router 两客户端转发、端口占用导致的启动失败，
-以及 CLI 的错误退出。编译与测试成功不代表 DDS 已与真实机器人互通。
+以及 CLI 的错误退出。媒体测试用合成 `videotestsrc → jpegenc` 管线验证真实 JPEG
+经 appsink 的采集路径，并用进程内 Zenoh 回环验证单帧/观测的 key、元数据、原样 JPEG、
+`no_frame`/`stale`、冻结帧不重复发布、查询持有不回复映射为超时、Session 默认
+查询期限短于 SDK 期限时仍按 SDK deadline 交付，以及运行期 `not-negotiated`
+按确定性错误终止；不连接实体相机。编译与测试成功不代表 DDS 已与真实机器人
+互通，也不代表 V4L2 caps 协商或 USB 掉线恢复已验证。
 
 ### Python
 
-`just test-python` 只验证连接失败语义与参数要求，不证明完整订阅链路。
+`just test-python` 验证连接失败语义、图片元数据解析、错误映射、单帧回复与
+“只保留最新帧”的观测队列；测试用进程内 Zenoh peer 充当服务端，不需要网关进程，
+也不证明真实网关的完整媒体链路。
 `just acceptance` 覆盖网关进程启动、Router 转发、模拟 DDS 桥接的完整 CDR 载荷、
 不可达端点失败与 `Ctrl+C` 退出。
 
@@ -90,6 +98,7 @@ DDS 观察窗口内外的失败与 panic、Router 两客户端转发、端口占
 ### 联调与实机
 
 仓库内已有本地回环验收，但没有可复现的实体机器人与真实网关联调步骤。
+媒体模块的实机检查（V4L2 设备占用、MJPEG caps、掉线恢复、PC2 编码器）同样待授权后执行。
 记录验证结果时，区分本地检查、模拟联调与实机结果，并注明未验证的部分。
 后续部署步骤应记录网关和客户端的桥接方式、网络条件及适用机器人。
 

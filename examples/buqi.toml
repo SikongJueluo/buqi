@@ -16,3 +16,6 @@ domain = 0
 # allow = "rt/.*"
 # deny = ".*cmd_vel.*"
 # localhost_only = false
+
+# 可选相机媒体（MJPEG → Zenoh 原始 JPEG）见 buqi-camera.toml；
+# 没有 [media] 区段时网关保持纯通信行为。

@@ -25,7 +25,7 @@ Buqi 网关已启动（Zenoh Router + DDS 插件桥接）
 ```
 
 输出只说明本机已监听，不保证某个客户端可达；网卡地址变化后需要重启网关。
-`Ctrl+C` 会停止 DDS 任务、关闭 Session 并退出。
+`Ctrl+C` 会停止媒体采集、停止 DDS 任务、关闭 Session 并退出。
 
 ## 自动选择监听地址
 
@@ -68,8 +68,23 @@ domain = 0      # 插件默认 0；设置了有效的 ROS_DOMAIN_ID 时用该值
   `true`；监听端点中的 `#exit_on_failure` 或 `#retry_*` 参数会被拒绝，不会转后台重试。
 - `plugins` 只接受 `dds`；插件由网关自己启动并监督，不能被 Zenoh 的插件加载器再启动一次。
 - DDS 始终启用，不提供关闭开关；Domain、topic 过滤等语义沿用插件本身。
+- `[media]` 是 Buqi 自己的可选区段，在交给 Zenoh 解析前被取出；没有它时保持纯通信行为。
+  媒体配置与协议见[相机媒体](media.md)。
 
 完整示例见 [examples/buqi.toml](../examples/buqi.toml)。
+
+## 媒体模块（可选）
+
+配置中出现 `[media]` 时，网关在启动 Router 之后启动相机采集与 Zenoh 图片通道：
+
+- 只有一路 V4L2 MJPEG 相机；GStreamer 是唯一采集者，不经过旧 OpenCV/ZMQ 路径。
+- 相机故障只影响媒体：Zenoh Router 与 DDS 继续运行，前台输出分别报告媒体和 DDS 状态。
+  媒体在初始阶段不可用（如缺少插件）时也只打印警告，网关仍继续启动。
+- 媒体配置语法错误仍按配置错误阻止启动；不会静默关闭媒体。
+- 图片 key、元数据、单帧/观测语义、新鲜度与恢复策略见[相机媒体](media.md)。
+
+前台输出会分别说明采集进入 PLAYING、收到首帧、临时重试与确定性停止；
+这些状态不表示 DDS 已发现机器人，也不表示其他主机能收到图片。
 
 ## DDS 插件
 
@@ -121,6 +136,9 @@ with buqi.connect("tcp/192.168.1.20:7447") as session:
 
 `just acceptance` 用真实网关进程、两个 Zenoh 客户端与本地模拟 DDS 发布端验证：
 监听端点输出、Router 转发、DDS 桥接的完整 CDR 载荷、连接失败与 `Ctrl+C` 退出。
+
+媒体另有合成 JPEG 与 Zenoh 回环测试（`just quality`），Python 端有图片协议测试
+（`just test-python`）；它们都不连接实体相机，也不覆盖真实 USB 掉线与 PC2 部署。
 
 该脚本把 DDS 限制在 `127.0.0.1`、使用测试 domain 199，不连接实体机器人；
 同机多进程限制在回环也避免开发机的多播环回差异影响结论。

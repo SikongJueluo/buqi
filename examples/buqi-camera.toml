@@ -1,0 +1,23 @@
+# Buqi 网关 + 可选相机媒体配置示例。
+#
+# device 必须替换为本机实际的 V4L2 节点；推荐 /dev/v4l/by-id/...，
+# 不要假定 /dev/video0。相机需原生输出 MJPEG。
+# 启动前确认没有旧相机进程占用同一设备；Buqi 不会停止或重置它。
+
+listen = { endpoints = ["tcp/127.0.0.1:7447"] }
+
+[plugins.dds]
+domain = 0
+
+[media.camera]
+id = "pc2-rgb"
+device = "/dev/v4l/by-id/REPLACE-ME-video-index0"
+width = 1280
+height = 720
+framerate = 30
+
+[media.observation]
+# 最新帧的 Zenoh 发布频率；单帧查询不受此节奏限制。
+rate_hz = 5.0
+# 服务端缓存超过该年龄即拒绝单帧查询，并停止发布旧帧。
+max_age_ms = 500

@@ -8,14 +8,17 @@
 
 use std::future::Future;
 use std::path::Path;
+use std::sync::Arc;
 use std::time::Duration;
 
 use anyhow::{Result, anyhow};
+use tokio::sync::mpsc;
 use tokio::task::{JoinError, JoinHandle};
 use zenoh::config::Locator;
 use zenoh::internal::runtime::RuntimeBuilder;
 
 use crate::config::{GatewayConfig, ListenSource};
+use crate::media::{Event as MediaEvent, Media};
 
 /// DDS 主任务观察窗口。
 ///
@@ -24,8 +27,10 @@ const DDS_OBSERVATION: Duration = Duration::from_secs(2);
 
 /// 已启动、尚未关闭的网关。
 pub struct Gateway {
-    session: zenoh::Session,
+    session: Arc<zenoh::Session>,
     dds: JoinHandle<()>,
+    media: Option<Media>,
+    media_events: mpsc::UnboundedReceiver<MediaEvent>,
     locators: Vec<Locator>,
 }
 
@@ -42,7 +47,7 @@ impl Gateway {
     pub async fn start(config_path: Option<&Path>) -> Result<Self> {
         zenoh::try_init_log_from_env();
 
-        let (zenoh_config, dds_config, listen_source) =
+        let (zenoh_config, dds_config, listen_source, media_config) =
             GatewayConfig::load(config_path)?.into_parts();
 
         let mut runtime = RuntimeBuilder::new(zenoh_config)
@@ -63,9 +68,30 @@ impl Gateway {
 
         let dds = tokio::spawn(zenoh_plugin_dds::run(runtime.into(), dds_config));
 
+        let session = Arc::new(session);
+        let (media, media_events) = match media_config {
+            None => {
+                // 媒体未启用：给前台循环一个立即结束的事件流。
+                let (_sender, receiver) = mpsc::unbounded_channel();
+                (None, receiver)
+            }
+            Some(config) => match Media::start(config, session.clone()).await {
+                Ok((media, events)) => (Some(media), events),
+                Err(error) => {
+                    println!(
+                        "警告：媒体模块不可用（{error:#}）。Zenoh Router 与 DDS 不受影响，网关继续运行。"
+                    );
+                    let (_sender, receiver) = mpsc::unbounded_channel();
+                    (None, receiver)
+                }
+            },
+        };
+
         Ok(Self {
             session,
             dds,
+            media,
+            media_events,
             locators,
         })
     }
@@ -97,11 +123,14 @@ impl Gateway {
         let Self {
             session,
             dds,
+            media,
+            mut media_events,
             locators: _,
         } = self;
 
         let mut dds = Some(dds);
         let mut dds_finished = false;
+        let mut media_finished = false;
         let mut observed = false;
         let observation = tokio::time::sleep(observation_window);
         tokio::pin!(observation);
@@ -130,7 +159,17 @@ impl Gateway {
                         dds_exit_reason(result)
                     );
                 }
+                event = media_events.recv(), if !media_finished => {
+                    match event {
+                        Some(event) => report_media_event(output, &event),
+                        None => media_finished = true,
+                    }
+                }
             }
+        }
+
+        if let Some(media) = media {
+            media.shutdown().await;
         }
 
         if let Some(handle) = dds
@@ -166,6 +205,27 @@ fn report_listeners(locators: &[Locator], listen_source: ListenSource) {
     println!("以上仅表示本机已监听，不保证其他主机可达；网络地址变化后需要重启网关。");
 }
 
+fn report_media_event<W: std::io::Write>(output: &mut W, event: &MediaEvent) {
+    let message = match event {
+        MediaEvent::CaptureStarted { session } => {
+            format!("媒体：相机采集已进入 PLAYING（会话 {session}）；等待首帧。")
+        }
+        MediaEvent::FirstFrame => "媒体：已收到相机首帧，图片通道可用。".to_owned(),
+        MediaEvent::Retrying {
+            attempt,
+            delay,
+            reason,
+        } => format!(
+            "警告：相机采集中断（{reason}）；第 {attempt} 次重试将在 {} 秒后进行。",
+            delay.as_secs()
+        ),
+        MediaEvent::Failed { reason } => format!(
+            "警告：媒体已停止（{reason}）。Zenoh Router 与 DDS 继续运行；修复原因后请重启网关。"
+        ),
+    };
+    let _ = writeln!(output, "{message}");
+}
+
 fn dds_exit_reason(result: std::result::Result<(), JoinError>) -> String {
     match result {
         Ok(()) => "主任务在运行期间返回".to_owned(),
@@ -192,11 +252,37 @@ mod tests {
     }
 
     fn gateway_with(session: zenoh::Session, dds: JoinHandle<()>) -> Gateway {
+        let (_sender, media_events) = mpsc::unbounded_channel();
         Gateway {
-            session,
+            session: Arc::new(session),
             dds,
+            media: None,
+            media_events,
             locators: Vec::new(),
         }
+    }
+
+    #[test]
+    fn media_events_describe_recovery_and_stop() {
+        let mut output = Vec::new();
+        report_media_event(
+            &mut output,
+            &MediaEvent::Retrying {
+                attempt: 2,
+                delay: Duration::from_secs(4),
+                reason: "设备被占用".to_owned(),
+            },
+        );
+        report_media_event(
+            &mut output,
+            &MediaEvent::Failed {
+                reason: "缺少 v4l2src".to_owned(),
+            },
+        );
+        let output = String::from_utf8(output).unwrap();
+        assert!(output.contains("第 2 次重试"), "{output}");
+        assert!(output.contains("4 秒"), "{output}");
+        assert!(output.contains("Zenoh Router 与 DDS 继续运行"), "{output}");
     }
 
     async fn serve_and_capture(

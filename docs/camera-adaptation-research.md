@@ -1,6 +1,8 @@
 # 摄像头适配调研：GStreamer 串流与 Zenoh 单帧
 
-> 2026-11-11；状态：调研建议，未实现，不定义统一 Robot API、key 命名或帧协议。
+> 2026-11-11；状态：调研建议，不定义统一 Robot API、key 命名或帧协议。
+> 最终实现的配置、协议与故障语义以[相机媒体](media.md)为准；本文保留调研过程与出处，
+> 其中 ZMQ 过渡、WebRTC 具体元件等备选未被最终契约采用。
 > 基线：Buqi 当前工作层、相邻 `~/Projects/robot` 的本地文件（change `lqmnyutnswvz`）；
 > GStreamer 本机 1.28.7、Rust bindings 锁定 0.25.4；Zenoh 1.10.2。
 > 下文区分代码事实、官方能力、设计建议与本次验证；没有连接实体机器人或相机。
