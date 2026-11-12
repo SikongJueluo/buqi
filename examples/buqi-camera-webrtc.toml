@@ -1,0 +1,34 @@
+# Buqi 网关 + MJPEG 相机 + 浏览器 WebRTC 配置示例。
+#
+# device 与 encoder 必须按目标机替换：
+# - device 推荐 /dev/v4l/by-id/...，相机需原生输出 MJPEG；
+# - encoder 必须显式选择，失败时 WebRTC 报告不可用，不会回退软件编码。
+#   PC2/Jetson 若使用 nvv4l2h264enc，应改成对应的转换/编码器链，
+#   不能照抄下面开发机的 x264enc。
+# 启动前确认没有旧相机进程占用设备；Buqi 不会停止或重置它。
+
+listen = { endpoints = ["tcp/127.0.0.1:7447"] }
+
+[plugins.dds]
+domain = 0
+
+[media.camera]
+id = "pc2-rgb"
+device = "/dev/v4l/by-id/REPLACE-ME-video-index0"
+width = 1280
+height = 720
+framerate = 30
+
+[media.observation]
+rate_hz = 5.0
+max_age_ms = 500
+
+[media.webrtc]
+# 开发机软件后端；仅作为显式选择，不是自动回退目标。
+encoder = "x264enc tune=zerolatency speed-preset=ultrafast"
+codec = "h264"
+# 信令必须显式绑定；禁止 0.0.0.0/:: 与端口 0。
+signalling = "127.0.0.1:8443"
+# 可选静态网页服务，两者必须同时出现；web_root 指向 gstwebrtc-api dist。
+# web = "127.0.0.1:8080"
+# web_root = "/path/to/gstwebrtc-api/dist"

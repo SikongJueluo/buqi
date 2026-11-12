@@ -3,6 +3,7 @@
 # device 必须替换为本机实际的 V4L2 节点；推荐 /dev/v4l/by-id/...，
 # 不要假定 /dev/video0。相机需原生输出 MJPEG。
 # 启动前确认没有旧相机进程占用同一设备；Buqi 不会停止或重置它。
+# 需要浏览器 WebRTC 时见 buqi-camera-webrtc.toml。
 
 listen = { endpoints = ["tcp/127.0.0.1:7447"] }
 

@@ -6,6 +6,8 @@
 - [`camera_snapshot.py`](camera_snapshot.py) —— 相机单帧查询与持续观测（需启用媒体模块）。
 - [`buqi.toml`](buqi.toml) —— 网关 TOML 配置样例（监听端点与 DDS 选项）。
 - [`buqi-camera.toml`](buqi-camera.toml) —— 在网关配置中加入可选 MJPEG 相机媒体。
+- [`buqi-camera-webrtc.toml`](buqi-camera-webrtc.toml) —— 在同一配置中加入浏览器
+  WebRTC 分支；设备与编码器需按目标机替换。
 
 规划中、尚未提供：
 

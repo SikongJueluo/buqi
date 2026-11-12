@@ -3,8 +3,8 @@
 本文说明可选的相机媒体模块：配置、采集归属、Zenoh 协议、新鲜度与故障语义。
 网关启动与监听见[网关文档](gateway.md)，环境与验证任务见[开发指南](DEVELOPMENT.md)。
 
-> 状态：相机 MJPEG → Zenoh 原始 JPEG（单帧查询与持续观测）已实现并通过本地自动测试；
-> **浏览器 WebRTC 视频尚未实现**，原因与待决选项见[后文](#浏览器视频与-webrtc)。
+> 状态：相机 MJPEG → Zenoh 原始 JPEG（单帧查询与持续观测）与可选浏览器 WebRTC
+> 分支均已实现并通过本地自动测试；**WebRTC 尚未经过真实浏览器/PC2 验证**。
 > 未连接实体相机、未在 PC2 或真实机器人网络验证。
 
 ## 启用与配置
@@ -135,32 +135,44 @@ with buqi.connect("tcp/192.168.1.20:7447") as session:
 - 只重试配置中的设备，不换设备、不改规格。
 - 相机故障不停止 Zenoh Router 与 DDS；媒体状态由前台输出单独报告。
   确定性命中后图片 key 仍可查询，会明确回复 `no_frame` 或 `stale`，而不是伪装成在线。
-- WebRTC 分支（尚未实现）不得拖垮 JPEG 观测；媒体与网关状态分别报告。
+- WebRTC 分支是独立管线，失败不影响 JPEG 观测；媒体与网关状态分别报告。
 - `Ctrl+C` 时停止采集（管线置 NULL）、撤销图片任务，再关闭 Zenoh Session。
 
 ## 浏览器视频与 WebRTC
 
-浏览器无法直接协商 MJPEG，通常要解 JPEG 再编码为 H.264/VP8 等。用户已确认：
-允许该分支转码，但无人观看时不得持续转码；编码器必须显式选择，硬件编码失败时
-报告 WebRTC 不可用，不静默回退软件编码。
+浏览器无法直接协商 MJPEG，因此该分支解 JPEG 再编码为 H.264/VP8/VP9。它是与
+采集/查询独立的第二条管线：
 
-本机核查结果（2026-11-11，仓库 `devenv.nix` 使用的 devenv-nixpkgs）：
+```text
+缓存最新帧 ──(仅当观看者 > 0)──> appsrc ! jpegdec ! videoconvert
+                                  ! <encoder 片段> ! capsfilter(codec) ! webrtcsink
+```
 
-- nixpkgs 的 `gst_all_1.gst-plugins-rs` 默认**排除** `webrtc` 插件，只提供
-  `webrtchttp`（WHIP/WHEP）；因此当前开发环境没有 `webrtcsink`。
-- `gst-plugins-bad` 提供 `webrtcbin`，但从零实现信令、ICE、网页与按观看者启停
-  会显著扩大范围，且本机没有浏览器端验证条件。
-- 目标机 PC2 的 GStreamer 版本、编码器与部署方式仍未检查，且未获实机授权。
+```toml
+[media.webrtc]
+# 必须显式选择编码器；不自动回退软件后端。可写多元素链，例如 Jetson 的
+# "nvvidconv ! video/x-raw(memory:NVMM),format=NV12 ! nvv4l2h264enc"。
+encoder = "x264enc tune=zerolatency speed-preset=ultrafast"
+codec = "h264"                 # h264 / vp8 / vp9
+signalling = "127.0.0.1:8443"  # 必须显式绑定，禁止 0.0.0.0/:: 或端口 0
 
-因此本轮先交付可测试的 JPEG/Zenoh 通道，WebRTC 作为独立后续工作。可选路线：
+# 可选静态网页；两者必须同时出现。web_root 指向 gstwebrtc-api 的 dist 目录。
+# web = "127.0.0.1:8080"
+# web_root = "/path/to/gstwebrtc-api/dist"
+```
 
-1. 在 Nix 中覆写 `gst-plugins-rs`，只构建 `webrtc` 插件（`plugins = ["webrtc"]`，
-   关闭测试），再使用其 `webrtcsink` 的内置信令/网页服务；需要额外构建与插件部署。
-2. 用 `webrtcbin` 自建信令（HTTP/WebSocket + SDP/ICE）与静态网页；应用代码更多，
-   需要浏览器端联调。
-3. 若目标机转码成本不可接受，把视频分支移到其他主机，或首版只保留 JPEG 观测。
-
-选择前不应在文档或配置中承诺 `webrtc_codec`/编码器行为。
+- 没有观看者时只保留信令服务器，不向 appsrc 推送帧，因此不持续解码/转码；
+  第一个观看者连接时才发送当前最新帧。
+- 编码器、插件或 caps 不可用时，WebRTC 报告不可用，JPEG 图片通道继续运行；
+  不静默切换软件编码器，也不重启为其他后端。
+- 信令与网页地址必须显式写成本机或指定 LAN 地址；端口在启动时预检查。
+- 内置网页服务只是静态文件服务器，页面需要部署方提供（自建 gstwebrtc-api dist
+  或等价页面）。不提供公网/TURN/认证；WebRTC 的 DTLS-SRTP 不等于访问控制。
+- 本机开发环境由 `devenv.nix` 覆写 nixpkgs 的 `gst-plugins-rs` 构建
+  `webrtc`/`rtp` 插件（默认包排除了 webrtc），并声明 `gst-plugins-bad`
+  （webrtcbin）与 `gst-plugins-ugly`（x264enc，仅作显式开发后端）。
+- PC2 的 GStreamer 版本与硬件编码器（如 `nvv4l2h264enc`）仍未核实；
+  必须按目标机实际插件选择 encoder 片段，不能照抄开发机配置。
 
 ## 验证范围
 
@@ -175,8 +187,11 @@ with buqi.connect("tcp/192.168.1.20:7447") as session:
 - Python 端查询持有不回复时在 deadline 映射为 `CameraTimeout`，而不是普通错误；
   即使 Session 的 `queries_default_timeout` 更短也不会提前截断，SDK 期限内到达的
   延迟回复仍成功；底层合成的 `Timeout` 同样映射为 `CameraTimeout`；
-- 运行期 caps 协商失败（GStreamer `not-negotiated`）按确定性错误停止。
+- 运行期 caps 协商失败（GStreamer `not-negotiated`）按确定性错误停止；
+- WebRTC 信令服务器起监听、静态网页目录可访问、无观看者不推送帧、
+  观看者连接/断开驱动推送、未知编码器报告 WebRTC 不可用。
 
-未验证：实体 V4L2 相机、MJPEG caps 协商、USB 掉线恢复、PC2 部署与资源占用、
-WebRTC、跨机网络与真实 VLA 负载。首次实机测试须另行获得维护者授权，
+未验证：真实浏览器 WebRTC 会话（SDP/ICE/RTP 与页面）、实体 V4L2 相机、
+MJPEG caps 协商、USB 掉线恢复、PC2 部署与资源占用、PC2 硬件编码器、
+跨机网络与真实 VLA 负载。首次实机测试须另行获得维护者授权，
 并确认旧相机进程未占用同一设备。

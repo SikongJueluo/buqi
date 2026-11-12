@@ -3,7 +3,18 @@
   lib,
   config,
   ...
-}: {
+}:
+let
+  # nixpkgs 默认不构建 plugins-rs 的 webrtc 插件（其测试失败被排除）。
+  # 这里沿用同一份 nixpkgs 源码，只构建 webrtc 插件以提供 webrtcsink。
+  gstPluginsRsWebrtc =
+    (pkgs.gst_all_1.gst-plugins-rs.override {
+      # meson 的 webrtc 选项依赖 rtp 插件，必须一起启用。
+      plugins = [ "webrtc" "rtp" ];
+    }).overrideAttrs {
+      doCheck = false;
+    };
+in {
   # https://devenv.sh/packages/
   packages = with pkgs; [
     cargo-watch
@@ -16,6 +27,15 @@
     # 等 bindings 解析 glib-2.0.pc。
     gst_all_1.gstreamer
     gst_all_1.gst-plugins-base
+    # v4l2src、jpegenc/jpegdec 与 RTP 负载化属于 plugins-good；
+    # 相机 MJPEG 直通与 WebRTC 分支都需要它。
+    gst_all_1.gst-plugins-good
+    # webrtcbin 与 ICE 等 WebRTC 基础设施；webrtcsink 的运行时依赖。
+    gst_all_1.gst-plugins-bad
+    # x264enc 仅作为开发机显式选择的软件 H.264 后端，不自动回退。
+    gst_all_1.gst-plugins-ugly
+    # 自定义构建：提供 webrtcsink/webrtcsrc（默认 nixpkgs 包不含）。
+    gstPluginsRsWebrtc
     glib
     # Python 环境由 sdk/python 下的 uv 全权管理（uv 自带 Python 构建）。
     uv

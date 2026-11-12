@@ -222,6 +222,19 @@ fn report_media_event<W: std::io::Write>(output: &mut W, event: &MediaEvent) {
         MediaEvent::Failed { reason } => format!(
             "警告：媒体已停止（{reason}）。Zenoh Router 与 DDS 继续运行；修复原因后请重启网关。"
         ),
+        MediaEvent::WebrtcStarted { signalling, web } => match web {
+            Some(web) => format!("媒体：WebRTC 信令已启动（{signalling}），网页 {web}。"),
+            None => format!("媒体：WebRTC 信令已启动（{signalling}）；未启用内置网页。"),
+        },
+        MediaEvent::WebrtcUnavailable { reason } => {
+            format!("警告：WebRTC 不可用（{reason}）。JPEG 图片通道继续运行。")
+        }
+        MediaEvent::WebrtcFailed { reason } => format!(
+            "警告：WebRTC 已停止（{reason}）。JPEG 图片通道继续运行；修复原因后请重启网关。"
+        ),
+        MediaEvent::WebrtcViewers { count } => {
+            format!("媒体：WebRTC 观看者数量为 {count}。")
+        }
     };
     let _ = writeln!(output, "{message}");
 }

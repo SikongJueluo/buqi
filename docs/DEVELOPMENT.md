@@ -17,8 +17,10 @@ direnv allow     # 已启用 direnv 的 shell
 devenv shell
 ```
 
-环境提供 Rust 工具链、cmake/libclang、GStreamer（含 `gst-plugins-base` 与
-`gst-plugins-good`：v4l2src、jpegenc/jpegdec 等）、uv 等依赖。
+环境提供 Rust 工具链、cmake/libclang、GStreamer（含 `gst-plugins-base`、
+`gst-plugins-good`、`gst-plugins-bad` 与 `gst-plugins-ugly`）、uv 等依赖。
+nixpkgs 默认不构建 plugins-rs 的 `webrtc` 插件，`devenv.nix` 用同一份源码覆写
+构建 `webrtc`/`rtp`，因此首次进入环境会额外编译该插件；随后才有 `webrtcsink`。
 首次构建 DDS 桥接依赖时会编译内置 CycloneDDS，耗时可能较长。
 
 Python SDK 在独立项目目录中初始化：
@@ -81,7 +83,9 @@ DDS 观察窗口内外的失败与 panic、Router 两客户端转发、端口占
 经 appsink 的采集路径，并用进程内 Zenoh 回环验证单帧/观测的 key、元数据、原样 JPEG、
 `no_frame`/`stale`、冻结帧不重复发布、查询持有不回复映射为超时、Session 默认
 查询期限短于 SDK 期限时仍按 SDK deadline 交付，以及运行期 `not-negotiated`
-按确定性错误终止；不连接实体相机。编译与测试成功不代表 DDS 已与真实机器人
+按确定性错误终止。WebRTC 测试验证信令端口监听、静态网页目录、观看者门控推送与
+未知编码器报告不可用；它们需要 `devenv` 构建的 `webrtcsink` 与 `x264enc`。
+这些测试都不连接实体相机或真实浏览器。编译与测试成功不代表 DDS 已与真实机器人
 互通，也不代表 V4L2 caps 协商或 USB 掉线恢复已验证。
 
 ### Python
@@ -98,7 +102,8 @@ DDS 观察窗口内外的失败与 panic、Router 两客户端转发、端口占
 ### 联调与实机
 
 仓库内已有本地回环验收，但没有可复现的实体机器人与真实网关联调步骤。
-媒体模块的实机检查（V4L2 设备占用、MJPEG caps、掉线恢复、PC2 编码器）同样待授权后执行。
+媒体模块的实机检查（V4L2 设备占用、MJPEG caps、掉线恢复、PC2 编码器）以及
+真实浏览器 WebRTC 会话（SDP/ICE/RTP、网页）同样待授权后执行。
 记录验证结果时，区分本地检查、模拟联调与实机结果，并注明未验证的部分。
 后续部署步骤应记录网关和客户端的桥接方式、网络条件及适用机器人。
 

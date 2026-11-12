@@ -14,7 +14,7 @@ use anyhow::{Context, Result, anyhow};
 use gstreamer as gst;
 use gstreamer::prelude::*;
 use gstreamer_app::{AppSink, AppSinkCallbacks};
-use tokio::sync::mpsc;
+use tokio::sync::{mpsc, watch};
 
 use super::Event;
 use super::config::CameraConfig;
@@ -37,13 +37,14 @@ impl Capture {
         camera: &CameraConfig,
         latest: Arc<Latest>,
         events: mpsc::UnboundedSender<Event>,
+        frame_sink: Option<watch::Sender<Option<Arc<Frame>>>>,
     ) -> Result<Self> {
         let stop = Arc::new(AtomicBool::new(false));
         let camera = camera.clone();
         let thread_stop = stop.clone();
         let thread = std::thread::Builder::new()
             .name(format!("buqi-capture-{}", camera.id))
-            .spawn(move || run(&camera, latest, &events, &thread_stop))
+            .spawn(move || run(&camera, latest, &events, &thread_stop, frame_sink))
             .context("创建相机采集线程失败")?;
         Ok(Self {
             stop,
@@ -64,6 +65,7 @@ fn run(
     latest: Arc<Latest>,
     events: &mpsc::UnboundedSender<Event>,
     stop: &AtomicBool,
+    frame_sink: Option<watch::Sender<Option<Arc<Frame>>>>,
 ) {
     if let Err(error) = gst::init() {
         let _ = events.send(Event::Failed {
@@ -83,6 +85,7 @@ fn run(
             events,
             stop,
             &session,
+            frame_sink.clone(),
         );
         match end {
             SessionEnd::Stopped => break,
@@ -136,6 +139,7 @@ fn run_session(
     events: &mpsc::UnboundedSender<Event>,
     stop: &AtomicBool,
     session: &str,
+    frame_sink: Option<watch::Sender<Option<Arc<Frame>>>>,
 ) -> (SessionEnd, u64, Duration) {
     let started = Instant::now();
     let (pipeline, appsink) = match build_pipeline(camera, source) {
@@ -156,12 +160,15 @@ fn run_session(
     let first_frame = Arc::new(AtomicBool::new(false));
     install_callbacks(
         &appsink,
-        latest,
-        events,
-        camera.id.clone(),
-        session.to_owned(),
-        produced.clone(),
-        first_frame,
+        FrameCallbacks {
+            latest,
+            events: events.clone(),
+            camera: camera.id.clone(),
+            session: session.to_owned(),
+            produced: produced.clone(),
+            first_frame,
+            frame_sink,
+        },
     );
 
     let bus = match pipeline.bus() {
@@ -228,16 +235,26 @@ fn run_session(
     (end, produced.load(Ordering::Relaxed), started.elapsed())
 }
 
-fn install_callbacks(
-    appsink: &AppSink,
+struct FrameCallbacks {
     latest: Arc<Latest>,
-    events: &mpsc::UnboundedSender<Event>,
+    events: mpsc::UnboundedSender<Event>,
     camera: String,
     session: String,
     produced: Arc<AtomicU64>,
     first_frame: Arc<AtomicBool>,
-) {
-    let events = events.clone();
+    frame_sink: Option<watch::Sender<Option<Arc<Frame>>>>,
+}
+
+fn install_callbacks(appsink: &AppSink, context: FrameCallbacks) {
+    let FrameCallbacks {
+        latest,
+        events,
+        camera,
+        session,
+        produced,
+        first_frame,
+        frame_sink,
+    } = context;
     let callbacks = AppSinkCallbacks::builder()
         .new_sample(move |appsink| {
             let sample = appsink.pull_sample().map_err(|_| gst::FlowError::Eos)?;
@@ -260,7 +277,11 @@ fn install_callbacks(
                 height as u32,
                 map.as_slice().to_vec(),
             );
-            latest.publish(Arc::new(frame));
+            let frame = Arc::new(frame);
+            latest.publish(frame.clone());
+            if let Some(sink) = &frame_sink {
+                sink.send_replace(Some(frame));
+            }
             if !first_frame.swap(true, Ordering::Relaxed) {
                 let _ = events.send(Event::FirstFrame);
             }
@@ -514,6 +535,7 @@ mod tests {
                 &events,
                 &thread_stop,
                 "s-test",
+                None,
             )
         });
 

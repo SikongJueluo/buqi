@@ -10,18 +10,19 @@ mod config;
 mod frame;
 mod protocol;
 mod transport;
+mod webrtc;
 
 use std::sync::Arc;
 use std::time::Duration;
 
 use anyhow::Result;
-use tokio::sync::mpsc;
+use tokio::sync::{mpsc, watch};
 use tokio::task::JoinHandle;
 use zenoh::Session;
 
 use crate::media::frame::Latest;
 
-pub use config::MediaConfig;
+pub use config::{MediaConfig, VideoCodec, WebrtcConfig};
 pub use frame::Metadata;
 
 /// 媒体模块状态事件，由网关前台循环打印。
@@ -39,11 +40,23 @@ pub enum Event {
     },
     /// 确定性故障，媒体已停止，等待操作者修复并重启网关。
     Failed { reason: String },
+    /// WebRTC 信令已启动。
+    WebrtcStarted {
+        signalling: String,
+        web: Option<String>,
+    },
+    /// WebRTC 分支不可用；JPEG 图片通道不受影响。
+    WebrtcUnavailable { reason: String },
+    /// WebRTC 分支已停止；JPEG 图片通道不受影响。
+    WebrtcFailed { reason: String },
+    /// 浏览器观看者数量变化。
+    WebrtcViewers { count: usize },
 }
 
 /// 已启动的媒体模块。
 pub struct Media {
     capture: Option<capture::Capture>,
+    webrtc: Option<webrtc::Webrtc>,
     tasks: Vec<JoinHandle<()>>,
 }
 
@@ -58,7 +71,15 @@ impl Media {
     ) -> Result<(Self, mpsc::UnboundedReceiver<Event>)> {
         let latest = Arc::new(Latest::new());
         let (events, receiver) = mpsc::unbounded_channel();
-        let capture = capture::Capture::start(&config.camera, latest.clone(), events)?;
+        let (frame_tx, frame_rx) = match config.webrtc {
+            Some(_) => {
+                let (tx, rx) = watch::channel(None);
+                (Some(tx), Some(rx))
+            }
+            None => (None, None),
+        };
+        let capture =
+            capture::Capture::start(&config.camera, latest.clone(), events.clone(), frame_tx)?;
         let tasks = match transport::start(session, &config, latest).await {
             Ok(tasks) => tasks,
             Err(error) => {
@@ -66,9 +87,24 @@ impl Media {
                 return Err(error);
             }
         };
+        let webrtc = match (&config.webrtc, frame_rx) {
+            (Some(webrtc_config), Some(frames)) => {
+                match webrtc::Webrtc::start(webrtc_config, frames, events.clone()).await {
+                    Ok(webrtc) => Some(webrtc),
+                    Err(error) => {
+                        let _ = events.send(Event::WebrtcUnavailable {
+                            reason: format!("{error:#}"),
+                        });
+                        None
+                    }
+                }
+            }
+            _ => None,
+        };
         Ok((
             Self {
                 capture: Some(capture),
+                webrtc,
                 tasks,
             },
             receiver,
@@ -77,6 +113,9 @@ impl Media {
 
     /// 停止采集并撤销 Zenoh 图片任务。
     pub async fn shutdown(mut self) {
+        if let Some(webrtc) = self.webrtc.take() {
+            webrtc.shutdown().await;
+        }
         if let Some(capture) = self.capture.take() {
             capture.shutdown();
         }
@@ -113,6 +152,7 @@ mod tests {
                 rate_hz,
                 max_age_ms,
             },
+            webrtc: None,
         }
     }
 

@@ -53,7 +53,7 @@ flowchart LR
 Zenoh 承担核心通信，DDS 互通复用 `zenoh-plugin-dds`。
 MQTT、ZMQ 等其他协议的接入仍需各自的桥接或适配，不属于当前已实现能力。
 图中媒体连线仅表示逻辑分流：当前由网关内的 GStreamer 采集相机，
-原始 JPEG 经 Zenoh 到达客户端；浏览器 WebRTC 视频尚未实现。
+原始 JPEG 经 Zenoh 到达客户端，浏览器 WebRTC 走独立的观看者门控分支。
 链路分离不等于带宽、时延或硬实时保证。
 
 ### 两种使用路径
@@ -78,9 +78,11 @@ MQTT、ZMQ 等其他协议的接入仍需各自的桥接或适配，不属于当
 - 可选媒体模块已实现：相机 V4L2 MJPEG 由 GStreamer 唯一采集，原始 JPEG 经 Zenoh
   提供单帧查询与默认 5 Hz 持续观测；Python SDK 提供 `buqi.snapshot` / `buqi.frames`，
   默认交付未解码 JPEG。协议与故障语义见[相机媒体](docs/media.md)。
+- 可选浏览器 WebRTC 分支已实现：观看者连接时才解码/转码，编码器显式配置，
+  WebRTC 故障不影响 JPEG 通道；具体浏览器会话尚未验证。
 - 仓库内含本地模拟 DDS 发布端与端到端验收（`just acceptance`），不连接实体机器人。
-- 浏览器 WebRTC 视频、机器人 Adapter、统一 API 与 Rust SDK 能力尚未实现。
-  媒体模块未在实体相机或 PC2 上验证。
+- 机器人 Adapter、统一 API 与 Rust SDK 能力尚未实现。媒体模块未在实体相机、
+  真实浏览器或 PC2 上验证。
 
 下一步先接入首个机器人 Adapter，再验证真实机器人网络中的发现与状态订阅链路；
 相机模块的实机验收需另行确认设备、旧进程占用与编码器条件。
