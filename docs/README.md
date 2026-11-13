@@ -13,6 +13,7 @@
 | 启用相机媒体、使用单帧/观测接口或排查媒体故障 | [相机媒体](media.md) |
 | 调研 Server 启动、监听地址输出与可达性边界 | [Server 网络调研](server-network-research.md) |
 | 查看相机方案的早期调研与出处（不是最终契约） | [摄像头适配调研](camera-adaptation-research.md) |
+| 了解 Python SDK 现状、uv Git 安装与宇树适配路线（不是最终契约） | [Python SDK 调研](python-sdk-research.md) |
 | 作为 Agent 开始工作，确认阅读入口与操作边界 | [AGENTS.md](../AGENTS.md) |
 | 新增、拆分或重组文档 | 本文的组织与写作约定 |
 
