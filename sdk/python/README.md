@@ -1,13 +1,29 @@
 # buqi Python SDK
 
 通过 Zenoh 连接 Buqi 网关（`buqi-server`，Zenoh Router + DDS 插件），
-以可插拔 Adapter 访问不同机器人。首版提供最小连接入口与相机图片通道，
+以可插拔 Adapter 访问不同机器人。当前提供最小连接入口与相机图片通道，
 统一 `Robot` 接口尚未实现。
 
+## 安装
+
+需要 Python 3.12 或更高版本。仓库根目录即 Python 项目，开发阶段可从 GitHub 安装：
+
 ```sh
-uv sync          # 安装依赖（eclipse-zenoh）
-uv run python -c "import buqi; print(buqi.__version__)"
+# uv（推荐）
+uv add "git+https://github.com/SikongJueluo/buqi.git" --branch main
+
+# pip
+pip install "git+https://github.com/SikongJueluo/buqi.git@main"
 ```
+
+本机联调使用可编辑安装：
+
+```sh
+uv add --editable /path/to/buqi
+```
+
+默认只安装运行依赖 `eclipse-zenoh`；DDS 验收依赖与机器人厂商 SDK 不在默认依赖中。
+仓库 CI 覆盖 Linux x86_64 上的 CPython 3.12–3.15，其他平台未声明已验证。
 
 ## 连接与订阅
 
@@ -42,12 +58,22 @@ with buqi.connect("tcp/192.168.1.20:7447") as session:
   `CameraNoFrameError` / `CameraStaleFrameError`，等待回复超时抛 `CameraTimeout`。
 - `frames` 的队列只保留最新一帧；`next` 默认 1 秒无新帧即抛 `CameraTimeout`。
 - `CameraFrame.jpeg` 是原始 JPEG 字节；`CameraFrame.metadata` 含会话、序号、尺寸与
-  服务端接收时间。协议与新鲜度语义见[相机媒体文档](../../docs/media.md)。
+  服务端接收时间。协议与新鲜度语义见[相机媒体文档](https://github.com/SikongJueluo/buqi/blob/main/docs/media.md)。
 
-## 验证
+## 仓库内开发与验证
+
+在仓库根目录运行：
 
 ```sh
-# 仓库根目录
-just test-python   # 连接失败语义 + 图片协议/错误映射/最新帧行为
-just acceptance    # 真实网关进程 + 模拟 DDS 发布端 + 订阅核对
+uv sync
+uv run python -m pytest -q   # 或 just test-python
+just check-python-dist       # wheel/sdist、sdist 重建与干净安装
+just acceptance              # 真实网关进程 + 模拟 DDS，需要 Rust 与显式 dds 组
 ```
+
+`just acceptance` 会构建 Rust workspace 并安装 DDS 验收依赖，不连接实体机器人。
+测试与示例不替代 `just acceptance` 的跨进程链路验证。
+
+更多入口：[开发指南](https://github.com/SikongJueluo/buqi/blob/main/docs/DEVELOPMENT.md)、
+[示例](https://github.com/SikongJueluo/buqi/tree/main/examples)、
+[Python SDK 调研](https://github.com/SikongJueluo/buqi/blob/main/docs/python-sdk-research.md)。

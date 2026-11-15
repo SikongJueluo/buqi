@@ -37,7 +37,7 @@ in {
     # 自定义构建：提供 webrtcsink/webrtcsrc（默认 nixpkgs 包不含）。
     gstPluginsRsWebrtc
     glib
-    # Python 环境由 sdk/python 下的 uv 全权管理（uv 自带 Python 构建）。
+    # Python 环境由根目录 uv 项目（pyproject.toml/uv.lock）管理（uv 自带 Python 构建）。
     uv
   ];
 

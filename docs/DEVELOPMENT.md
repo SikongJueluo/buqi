@@ -7,7 +7,8 @@
 ## 环境准备
 
 需要 Nix、devenv 和 just；direnv 可选。系统级依赖由根目录的 `devenv.nix` 管理，
-Rust 依赖由 Cargo 管理，Python 环境与依赖由 `sdk/python` 下的 uv 项目管理。
+Rust 依赖由 Cargo 管理，Python 环境与依赖由根目录的 `pyproject.toml` / `uv.lock`
+管理；Python 源码仍在 `sdk/python/src`。
 
 在仓库根目录进入开发环境，任选一种方式：
 
@@ -23,10 +24,9 @@ nixpkgs 默认不构建 plugins-rs 的 `webrtc` 插件，`devenv.nix` 用同一�
 构建 `webrtc`/`rtp`，因此首次进入环境会额外编译该插件；随后才有 `webrtcsink`。
 首次构建 DDS 桥接依赖时会编译内置 CycloneDDS，耗时可能较长。
 
-Python SDK 在独立项目目录中初始化：
+仓库根目录同时是 Python 项目，首次使用或依赖变化后同步环境：
 
 ```sh
-cd sdk/python
 uv sync
 uv run python -c "import buqi; print(buqi.__version__)"
 ```
@@ -41,12 +41,15 @@ uv run python -c "import buqi; print(buqi.__version__)"
 | --- | --- | --- |
 | `just check` | 开发中的快速编译检查 | 检查 Rust workspace，不运行测试 |
 | `just quality` | Rust 改动完成后的检查 | 格式检查、Clippy（警告视为错误）、Rust 测试；不含 Python 与端到端验收 |
-| `just test-python` | 修改 Python SDK 后 | 在 `sdk/python` 运行 pytest；覆盖 `buqi.connect` 的失败语义，不需要网关 |
-| `just acceptance` | 跨进程闭环验收 | 构建 workspace，启动真实网关进程与本地模拟 DDS 发布端；DDS 限制在回环与测试 domain 199 |
+| `just test-python` | 修改 Python SDK 后 | 在仓库根目录运行 pytest；覆盖 `buqi.connect` 的失败语义与媒体行为，不需要网关 |
+| `just check-python-dist` | 修改打包配置或发布前 | 构建 wheel/sdist、从 sdist 重建、干净安装并运行回环示例；产物留在 `target/python-dist` |
+| `just acceptance` | 跨进程闭环验收 | 构建 workspace 并安装 `dds` 依赖组，启动真实网关进程与本地模拟 DDS 发布端；DDS 限制在回环与测试 domain 199 |
 | `just fix` | 本地自动修正 | 格式化并执行 Clippy 自动修复，会修改源码，完成后检查差异 |
 | `just watch` | 开发中持续检查 | 监听 `crates/`，触发 Rust workspace 编译检查 |
 
 - `quality` 不包含 doctest、Python、实机通信或功能验收；各步骤失败会中止任务。
+- `check-python-dist` 使用临时虚拟环境与官方 PyPI，不借用仓库 `.venv` 或开发组；
+  只验证 Linux x86_64 上的实际结果，不代表其他平台。
 - `acceptance` 会临时占用本机 TCP 端口并启动子进程；不访问外部网络，也不连接实体机器人。
 - `check`、`quality` 会产生构建缓存；依赖配置变化时，Cargo 也可能更新锁文件。
 - `fix` 用于本地修正，不作为只读检查或 CI 入口；修正后仍需运行检查。
@@ -61,7 +64,7 @@ uv run python -c "import buqi; print(buqi.__version__)"
 | `crates/buqi-core` | 网关配置、监听地址、Router/DDS 监督与可选媒体模块 | 收纳实际复用的逻辑，供 Server/CLI 共用；不把 binary crate 当库 |
 | `crates/buqi-server` | 网关程序入口，前台运行到 `Ctrl+C` | 薄入口，启动逻辑在 Core；不承载厂商 SDK 或机器人业务 |
 | `crates/buqi-cli` | 维护者命令入口，当前只有 `buqi server` | 负责参数与交互，复用 Core；不做后台服务管理或诊断命令 |
-| `sdk/python` | Python 客户端接口及机器人 Adapter | `buqi.connect` 封装官方 `eclipse-zenoh` 并返回原生 Session；机器人适配留在客户端 |
+| `sdk/python` | Python 客户端接口及机器人 Adapter；根 `pyproject.toml` / `uv.lock` 是发行与依赖配置 | `buqi.connect` 封装官方 `eclipse-zenoh` 并返回原生 Session；机器人适配留在客户端 |
 | `sdk/rust` | Rust 客户端接口 | 在 Python 接口稳定后对齐能力与语义，不要求调用形式完全相同 |
 | `examples` | 面向使用者的最小调用示例与配置样例 | 消费 SDK 的公开接口，不承载 SDK 实现 |
 
@@ -93,8 +96,14 @@ DDS 观察窗口内外的失败与 panic、Router 两客户端转发、端口占
 `just test-python` 验证连接失败语义、图片元数据解析、错误映射、单帧回复与
 “只保留最新帧”的观测队列；测试用进程内 Zenoh peer 充当服务端，不需要网关进程，
 也不证明真实网关的完整媒体链路。
+`just check-python-dist` 额外构建 wheel 与 sdist，从 sdist 重建 wheel，在干净虚拟环境
+安装标准 wheel，验证 `py.typed`、许可证与包元数据，并运行 `examples/loopback.py`。
+它不使用仓库 `.venv`、开发组或源码路径；产物在 `target/python-dist`，临时环境随即清理。
 `just acceptance` 覆盖网关进程启动、Router 转发、模拟 DDS 桥接的完整 CDR 载荷、
-不可达端点失败与 `Ctrl+C` 退出。
+不可达端点失败与 `Ctrl+C` 退出；它显式安装 `dds` 依赖组，默认开发环境不包含 DDS。
+
+Python 发行要求 CPython 3.12 或更高；`.github/workflows/python.yml` 在 Linux x86_64
+覆盖 3.12–3.15 的锁文件安装与 pytest，并单独执行发行物检查。其他平台未声明已验证。
 
 验收脚本把 DDS 限制在 `127.0.0.1` 并使用测试 domain 199，属于隔离环境；
 真实机器人网络、CycloneDDS 默认网卡发现、TLS/ACL 与媒体链路不在自动验收范围内。

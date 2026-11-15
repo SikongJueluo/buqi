@@ -1,0 +1,178 @@
+version = 1
+revision = 5
+requires-python = ">=3.12"
+
+[[package]]
+name = "buqi"
+source = { editable = "." }
+dependencies = [
+    { name = "eclipse-zenoh" },
+]
+
+[package.dev-dependencies]
+dds = [
+    { name = "cyclonedds" },
+]
+dev = [
+    { name = "pytest" },
+]
+
+[package.metadata]
+requires-dist = [{ name = "eclipse-zenoh", specifier = ">=1.10.2,<2" }]
+
+[package.metadata.requires-dev]
+dds = [{ name = "cyclonedds", specifier = ">=11.1.0" }]
+dev = [{ name = "pytest", specifier = ">=9.2.0" }]
+
+[[package]]
+name = "click"
+version = "8.5.1"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/45/37/edbf1b0707709013c0cf2e8317e03d97ed29bf4cac709fe328904ae92a38/click-8.5.1.tar.gz", hash = "sha256:9bbfada76703fd1d784b83eea012e3e8c6a001a876543ef104fa56aaaeb072b4", size = 399151, upload-time = "2026-11-06T17:37:01.021Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/31/7d/164b7ffc8624fe9efb4221bf9af485d5c1e41b9ae118045d2b6dc5457d8b/click-8.5.1-py3-none-any.whl", hash = "sha256:8bb5376d2006950386f8c6427613334a2acadc5f559cb80e638d00b4df957e37", size = 126163, upload-time = "2026-11-06T17:36:59.287Z" },
+]
+
+[[package]]
+name = "colorama"
+version = "0.4.6"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/d8/53/6f443c9a4a8358a93a6792e2acffb9d9d5cb0a5cfd8802644b7b1c9a02e4/colorama-0.4.6.tar.gz", hash = "sha256:08695f5cb7ed6e0531a20572697297273c47b8cae5a63ffc6d6ed5c201be6e44", size = 27697, upload-time = "2022-10-25T02:36:22.414Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/d1/d6/3965ed04c63042e047cb6a3e6ed1a63a35087b6a609aa3a15ed8ac56c221/colorama-0.4.6-py2.py3-none-any.whl", hash = "sha256:4f1d9991f5acc0ca119f9d443620b77f9d6b33703e51011c16baf57afb285fc6", size = 25335, upload-time = "2022-10-25T02:36:20.889Z" },
+]
+
+[[package]]
+name = "cyclonedds"
+version = "11.1.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "rich-click" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/8a/01/0037ab0b885e97fd13950a78807a98d7628b6b9ae4eae6300b83a176de80/cyclonedds-11.1.0.tar.gz", hash = "sha256:28dc2b38e222e7a162506c8d58accf2c32cdeb23283da9de60200ac938cf0c7d", size = 194976, upload-time = "2026-11-09T15:13:50.97Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/15/c3/4c9a890e8f89272adc3b0468495301e768244e8735b993a12539a73ed901/cyclonedds-11.1.0-cp312-cp312-macosx_10_13_x86_64.whl", hash = "sha256:53a86d7f3ea44cc7f81ec3068d7f66b5e6c6c25c0eeccff4d96154122befe460", size = 989873, upload-time = "2026-11-09T15:14:07.002Z" },
+    { url = "https://files.pythonhosted.org/packages/ec/79/f604bc25653694baa79f3f90c1220b39cef13a5048c1533fb9331e58da53/cyclonedds-11.1.0-cp312-cp312-macosx_11_0_arm64.whl", hash = "sha256:0333dd66e344cfdf483f776fb0ed0520ced61ddd4a6049acc3a61573812d1cba", size = 915407, upload-time = "2026-11-09T15:14:08.33Z" },
+    { url = "https://files.pythonhosted.org/packages/5c/1e/352c939e1e2e86494a1f79dc378c224034b84f6f943716a3bc156b238783/cyclonedds-11.1.0-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:7651d6db1ce31e547894dc678fbb30dd3f0ba1131cc845499b0181a38873c401", size = 8335220, upload-time = "2026-11-09T15:14:10.386Z" },
+    { url = "https://files.pythonhosted.org/packages/90/b0/fb372da2270ebf98356651b8398c7e390c7b9fa7688155434e9afc18c511/cyclonedds-11.1.0-cp312-cp312-win_amd64.whl", hash = "sha256:553b579ba1f2c9dafe2d9b16d721de7cc7110b2e915bd03d3f304739288324be", size = 1459679, upload-time = "2026-11-09T15:14:12.703Z" },
+    { url = "https://files.pythonhosted.org/packages/13/db/495902d606d247576ff7f6fcab9618190b5c414348fdbb46c1b424c05558/cyclonedds-11.1.0-cp313-cp313-macosx_10_13_x86_64.whl", hash = "sha256:72d5d7e6776faf500ac7e241ce0e2ee0f53a93bcc39230baea4ec46309aed2a7", size = 989871, upload-time = "2026-11-09T15:14:14.461Z" },
+    { url = "https://files.pythonhosted.org/packages/3d/28/ab975434b259c9a2a46aaa237c1b5b94b5875cec69c6418340989cb17330/cyclonedds-11.1.0-cp313-cp313-macosx_11_0_arm64.whl", hash = "sha256:cc4b6bc87170c2422d70f8766011ff15d198b3a7fbc60e95cf9889db43135246", size = 915492, upload-time = "2026-11-09T15:14:15.986Z" },
+    { url = "https://files.pythonhosted.org/packages/47/0d/7f83fdd2c3555d60c081d43eeca8eab1880fc83414bba5854b9c64315dd1/cyclonedds-11.1.0-cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:026c8533ad37203fc21917a6e49efdfe5bbe54f5157956d9b4758eb6f2385a90", size = 8335185, upload-time = "2026-11-09T15:14:18.072Z" },
+    { url = "https://files.pythonhosted.org/packages/6f/0d/6dae8aaafc5540c47462e69839aae0c557f6e48e3d8642d5551b2fa83f01/cyclonedds-11.1.0-cp313-cp313-win_amd64.whl", hash = "sha256:8df9b300ddf990eb0f7576d99189dc1e46a494f93a14fefc48454ad87fdda88c", size = 1459675, upload-time = "2026-11-09T15:14:19.77Z" },
+]
+
+[[package]]
+name = "eclipse-zenoh"
+version = "1.10.2"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/c4/6d/1a71883d4d515a4c30a702ec14dc86150ed5dfb1315b7a2ecfb740f053cb/eclipse_zenoh-1.10.2.tar.gz", hash = "sha256:a338f4d1a0a736cbae4e1f5becdd2e81a6a2e5934ffa8a4b1436cf0fbac7fb2e", size = 170193, upload-time = "2026-10-28T12:32:40.289Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/33/83/c5b27e3ad43841c7f2236e89ca42cd618731da649f7f3f9d743769295f3b/eclipse_zenoh-1.10.2-cp39-abi3-linux_armv6l.whl", hash = "sha256:21f1fe4016f2b508193d3a50b00621d084ac351db0e390211eae87a77a0dec6a", size = 10908371, upload-time = "2026-10-28T12:32:24.434Z" },
+    { url = "https://files.pythonhosted.org/packages/32/5b/2ea4d1763458f649efe8da780d800be2ca3bf977532d1c6d8b914df78192/eclipse_zenoh-1.10.2-cp39-abi3-macosx_10_12_x86_64.macosx_11_0_arm64.macosx_10_12_universal2.whl", hash = "sha256:e7903cb5d8a28e0056c10e0bc872e07ca6e11463b41013c3bdf05fb586f0c768", size = 19256165, upload-time = "2026-10-28T12:32:26.629Z" },
+    { url = "https://files.pythonhosted.org/packages/9e/eb/c92b2d55f08a32cd68db820f94ced2c4083567aa0dee05a51243340ac0ac/eclipse_zenoh-1.10.2-cp39-abi3-macosx_10_12_x86_64.whl", hash = "sha256:a1a36b27671a2a1bd958248c6adfb1ca13456f7de1865d9669f50f0b0e85e602", size = 9870819, upload-time = "2026-10-28T12:32:28.659Z" },
+    { url = "https://files.pythonhosted.org/packages/c8/7d/49ca3a5f5385ceedf15336a60a56b4c72eee744748ea35e232022650355b/eclipse_zenoh-1.10.2-cp39-abi3-manylinux_2_17_armv7l.manylinux2014_armv7l.whl", hash = "sha256:39ab8569449bd655ae8a4ae99422303b5c09a515df38d90135387854baccf796", size = 10758400, upload-time = "2026-10-28T12:32:30.595Z" },
+    { url = "https://files.pythonhosted.org/packages/f7/1d/f78e91f24e4017adeacbb6b0f4c29c4f380e6320f301f95256f6eaa711d0/eclipse_zenoh-1.10.2-cp39-abi3-manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:945e6df323befcea5b8dc281e5493d4fec192c2bb6ab1d9e91bcaf13632235be", size = 11719767, upload-time = "2026-10-28T12:32:32.489Z" },
+    { url = "https://files.pythonhosted.org/packages/8c/cb/f8fe2e8a8cc4129797667429484bf978c9821aca4efe25f5f7b30f7c0fae/eclipse_zenoh-1.10.2-cp39-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:cd3c922c9f018568f9c7c8747f1aad81b646f5d8e98cc24bfa4aa160f35cdb96", size = 10324413, upload-time = "2026-10-28T12:32:34.586Z" },
+    { url = "https://files.pythonhosted.org/packages/d7/77/109bfe0339b16e81fe2f3428dc6098c4d4e7586a2a317b1e91f190a4c023/eclipse_zenoh-1.10.2-cp39-abi3-manylinux_2_28_aarch64.whl", hash = "sha256:d732e89381c1ad28ee587ad11da4ed2d8b12d985f32d0485658c81b125f4ef9b", size = 10859406, upload-time = "2026-10-28T12:32:36.414Z" },
+    { url = "https://files.pythonhosted.org/packages/a4/bb/0e1585315a8e27e0496d6576e02c71652393371b8eba89864bc302904b4d/eclipse_zenoh-1.10.2-cp39-abi3-win_amd64.whl", hash = "sha256:545fd22a684b7023423e3a85c17b615a0a7a791344bbc7aade67e121e78ca2d5", size = 9140335, upload-time = "2026-10-28T12:32:38.585Z" },
+]
+
+[[package]]
+name = "iniconfig"
+version = "2.3.1"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/01/e1/2069291243c926a2ff1cd706c7f3eeb9b62144bf60f77c9fb9ff2fb26bd3/iniconfig-2.3.1.tar.gz", hash = "sha256:67f4b9c50da0dedf52af349e7749a80a9057a5031199791b906c3bb3ae878960", size = 21209, upload-time = "2026-10-06T22:48:38.076Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/56/43/4ca9e49d27a1fcf6bece6f6aec0ea46bb9112489b93d4b688fb415457bdb/iniconfig-2.3.1-py3-none-any.whl", hash = "sha256:9121e2c1fdb355232495be3194c8dfe87ccc2d5dee45947b78e68f499790d7a7", size = 7552, upload-time = "2026-10-06T22:48:36.959Z" },
+]
+
+[[package]]
+name = "markdown-it-py"
+version = "4.2.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "mdurl" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/06/ff/7841249c247aa650a76b9ee4bbaeae59370dc8bfd2f6c01f3630c35eb134/markdown_it_py-4.2.0.tar.gz", hash = "sha256:04a21681d6fbb623de53f6f364d352309d4094dd4194040a10fd51833e418d49", size = 82454, upload-time = "2026-05-07T12:08:28.36Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/b3/81/4da04ced5a082363ecfa159c010d200ecbd959ae410c10c0264a38cac0f5/markdown_it_py-4.2.0-py3-none-any.whl", hash = "sha256:9f7ebbcd14fe59494226453aed97c1070d83f8d24b6fc3a3bcf9a38092641c4a", size = 91687, upload-time = "2026-05-07T12:08:27.182Z" },
+]
+
+[[package]]
+name = "mdurl"
+version = "0.1.2"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/d6/54/cfe61301667036ec958cb99bd3efefba235e65cdeb9c84d24a8293ba1d90/mdurl-0.1.2.tar.gz", hash = "sha256:bb413d29f5eea38f31dd4754dd7377d4465116fb207585f97bf925588687c1ba", size = 8729, upload-time = "2022-08-14T12:40:10.846Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/b3/38/89ba8ad64ae25be8de66a6d463314cf1eb366222074cfda9ee839c56a4b4/mdurl-0.1.2-py3-none-any.whl", hash = "sha256:84008a41e51615a49fc9966191ff91509e3c40b939176e643fd50a5c2196b8f8", size = 9979, upload-time = "2022-08-14T12:40:09.779Z" },
+]
+
+[[package]]
+name = "packaging"
+version = "26.3"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/7d/fa/3944b40b07da9ce895c0e6303a5ab7d53da063554f534556b134a54d6093/packaging-26.3.tar.gz", hash = "sha256:94edc256424af38762eb31306eed28beb9f0efc50a8837492c9d6fd6004aed79", size = 313412, upload-time = "2026-08-04T18:15:28.737Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/63/34/ba1c580383c9eada3711951fef0795c80b829a078d72188184bcab9dd527/packaging-26.3-py3-none-any.whl", hash = "sha256:d7193f7c8e4e93f444fde0262bf90af30e16fa0ad0ad44cb553c87339b23cd1c", size = 129956, upload-time = "2026-08-04T18:15:27.159Z" },
+]
+
+[[package]]
+name = "pluggy"
+version = "1.7.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/bf/db/7fc19e6f2dc92a966727031389fc2e08b558f0f25eb7403c1119ad4713cd/pluggy-1.7.0.tar.gz", hash = "sha256:d1eaa46ebb595891b860ab086b4d09c8588af65ebd4361b8e8f4bb8920b90ba8", size = 123304, upload-time = "2026-10-15T09:50:58.343Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/40/9e/2b38731e0fc536806f16490e1a12d7f0dc2a1235aa8cc07bcc75416a7daa/pluggy-1.7.0-py3-none-any.whl", hash = "sha256:7dd7b0d8832ba3cb632c306926ded123429211b83641b35dc5c41ad2d34f9bec", size = 27082, upload-time = "2026-10-15T09:50:56.808Z" },
+]
+
+[[package]]
+name = "pygments"
+version = "2.21.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/49/2e/ced460408999b33da6b31b0021b0f37d329e202d4169aeb164493778f25b/pygments-2.21.0.tar.gz", hash = "sha256:610ca751c9bc2492b38eb9a38a7fbc93edbbb2d7182edaf34e66ae493dee5c8c", size = 5005329, upload-time = "2026-08-17T08:02:48.824Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/71/46/17f022dd3e953bf20a04a028a21ec746d942f8d2af30fa0f124fa0e6a684/pygments-2.21.0-py3-none-any.whl", hash = "sha256:2363c69b61c4a97c838da3b130dcd6468f4848992b21a82f2a63ec34377137d9", size = 1250147, upload-time = "2026-08-17T08:02:44.912Z" },
+]
+
+[[package]]
+name = "pytest"
+version = "9.2.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "colorama", marker = "sys_platform == 'win32'" },
+    { name = "iniconfig" },
+    { name = "packaging" },
+    { name = "pluggy" },
+    { name = "pygments" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/79/42/bb4641652e58dedeac2ec51abc1f8cae4fee4ec63899a0999016229a0f2a/pytest-9.2.0.tar.gz", hash = "sha256:97c4f3b1f3c7414aa36465e09b8220f1d03627993bd51b1282e193753c80557b", size = 1797555, upload-time = "2026-10-27T21:30:20.728Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/51/39/1f5d8c8877a0fa327db959c19341d4be61660de1ab6b7391f9eb805bcd67/pytest-9.2.0-py3-none-any.whl", hash = "sha256:07acdcf88ec174f907dc01af70bf52d49b014bbab03faeeade31c96b18c2e588", size = 411776, upload-time = "2026-10-27T21:30:19.131Z" },
+]
+
+[[package]]
+name = "rich"
+version = "15.0.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "markdown-it-py" },
+    { name = "pygments" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/c0/8f/0722ca900cc807c13a6a0c696dacf35430f72e0ec571c4275d2371fca3e9/rich-15.0.0.tar.gz", hash = "sha256:edd07a4824c6b40189fb7ac9bc4c52536e9780fbbfbddf6f1e2502c31b068c36", size = 230680, upload-time = "2026-04-12T08:24:00.75Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/82/3b/64d4899d73f91ba49a8c18a8ff3f0ea8f1c1d75481760df8c68ef5235bf5/rich-15.0.0-py3-none-any.whl", hash = "sha256:33bd4ef74232fb73fe9279a257718407f169c09b78a87ad3d296f548e27de0bb", size = 310654, upload-time = "2026-04-12T08:24:02.83Z" },
+]
+
+[[package]]
+name = "rich-click"
+version = "1.9.9"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "click" },
+    { name = "colorama", marker = "sys_platform == 'win32'" },
+    { name = "rich" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/96/3e/5688fdd83aea416de336582a274f2bc8236b5c261b04c11e17bc262786ad/rich_click-1.9.9.tar.gz", hash = "sha256:324cba7513cd4187ee92b2eef21f071714e45be062458c8b157bd7e0c81103e3", size = 75866, upload-time = "2026-09-05T19:20:14.799Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/b5/51/b2b91aec091e86bc961e5164f00207d89f133cc82b5ddad541d2132ea819/rich_click-1.9.9-py3-none-any.whl", hash = "sha256:365e7a9d0adb42e41ea832a0a12e02c44c079a26536dee688125eb9814f97274", size = 71910, upload-time = "2026-09-05T19:20:13.587Z" },
+]

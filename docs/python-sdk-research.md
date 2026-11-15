@@ -4,6 +4,13 @@
 调研时间：2026-11-13。区分**当前事实**、**建议**与**待验证**；不定义新的 `Robot` Interface，
 不作为实机操作指南。模块归属仍以[开发指南](DEVELOPMENT.md#模块职责与边界)为准。
 
+> **实施更新（2026-11-16）**：打包入口已迁到仓库根目录——根 `pyproject.toml` /
+> `uv.lock`、Hatchling 动态版本、`requires-python >=3.12`、`py.typed`、许可证与受限
+> sdist，并增加 Linux x86_64 的 CPython 3.12–3.15 CI。新安装命令不再带
+> `#subdirectory=sdk/python`；当前用法以 [SDK README](../sdk/python/README.md) 和
+> [开发指南](DEVELOPMENT.md)为准。下文 §1–§3 保留调研时的路径、版本与验证证据，
+> 其中旧的子目录安装、`sdk/python/pyproject.toml` 与 Python 3.10 描述是历史记录。
+
 ## 结论
 
 - **已经能打包，也已经能通过 uv 从 GitHub 安装**；无需为此拆仓库或先发布 PyPI。
@@ -12,16 +19,16 @@
 - Unitree 的旧版 CycloneDDS 与本仓库的模拟 DDS 开发依赖冲突，**不代表两个发行包不能共用**。
 - 建议先补齐分发保障，再在独立消费项目验证 Unitree，最后以明确的动作契约实现首个 Adapter。
 
-## 1. 当前实现与验证范围
+## 1. 调研时的实现与验证范围（迁移前）
 
 | 能力 | 本地事实与依据 |
 | --- | --- |
-| 包结构 | [`pyproject.toml`](../sdk/python/pyproject.toml)：Hatchling、`src/buqi`、包名 `buqi`、版本 `0.1.0`、Python `>=3.10` |
+| 包结构 | 迁移前为 `sdk/python/pyproject.toml`：Hatchling、`src/buqi`、包名 `buqi`、版本 `0.1.0`、Python `>=3.10`；现已迁至根 [`pyproject.toml`](../pyproject.toml)，要求 Python `>=3.12` |
 | 连接 | [`connect`](../sdk/python/src/buqi/_connect.py)：显式 Zenoh 端点、关闭自动发现、约 3 秒连接期限，返回原生 Session |
 | 收发 | 沿用官方 Session；机器人 DDS 载荷仍为不透明字节，没有机器人消息解码 |
 | 图片 | [`media.py`](../sdk/python/src/buqi/media.py)：`snapshot`、`frames`、JPEG/元数据、明确错误与只保留最新帧的队列 |
 | 控制 | 无机器人 Adapter、模型动作转换、单位/坐标转换、运动执行或控制权管理；见[首页](../README.md#当前状态) |
-| 依赖 | runtime 仅 `eclipse-zenoh>=1.10.2,<2`；`cyclonedds>=11.1.0` 与 pytest 属于开发组，不进入 wheel 的运行依赖 |
+| 依赖 | runtime 仅 `eclipse-zenoh>=1.10.2,<2`；pytest 属于 `dev` 组，`cyclonedds>=11.1.0` 属于显式 `dds` 验收组，都不进入 wheel 的运行依赖 |
 | DDS 验收 | [`tests/dds_publisher.py`](../sdk/python/tests/dds_publisher.py) 使用 CycloneDDS；[`acceptance.py`](../sdk/python/tests/acceptance.py) 只验证本地模拟 DDS → Zenoh 等链路，不是 Unitree 控制验收 |
 
 本次在 Linux x86_64、Python 3.13.12、uv 0.13.4、eclipse-zenoh 1.10.2 下执行：
@@ -38,7 +45,11 @@
 **未执行**跨进程 `just acceptance`、Unitree 安装/控制、实体相机或机器人验证；没有发布或推送。
 这里只验证了一个 Python/Zenoh 组合，不等于声明的全部版本和平台都已验证。
 
-## 2. uv 从 GitHub 使用：现在可行
+## 2. uv 从 GitHub 使用：调研结论（迁移前入口）
+
+迁移后的当前命令见 [SDK README](../sdk/python/README.md)：
+`uv add "git+https://github.com/SikongJueluo/buqi.git" --branch main`。
+以下保留调研时使用子目录入口的命令与实测证据，便于对照旧消费项目。
 
 以下命令在**使用 Buqi 的应用项目**中运行，不是在 Buqi 仓库根目录运行。[U1][U2]
 
@@ -69,15 +80,18 @@ Git 安装只能取得已推送内容；本地和远端都标 `0.1.0`，不能�
 不想每次推送时，在应用项目使用本地源码：[U1][U2]
 
 ```sh
-# 把路径换成这台机器的实际路径；这是 editable，SDK 源码修改可直接生效
-uv add --editable /home/sikongjueluo/Projects/buqi/sdk/python
+# 迁移后的 editable 路径；调研时验证的是 sdk/python 子目录
+uv add --editable /home/sikongjueluo/Projects/buqi
 ```
 
 推荐流程：**本机改代码用 editable → 跨机协作用 Git 分支 → 部署固定 Git SHA/tag → 稳定后 PyPI**。
-有 SSH 权限时 URL 可换成 `git+ssh://git@github.com/SikongJueluo/buqi.git#subdirectory=sdk/python`；
+有 SSH 权限时 URL 可换成 `git+ssh://git@github.com/SikongJueluo/buqi.git`（迁移后不再带子目录）；
 SSH 形式未实测，本次验证的是 HTTPS。Git 引用不受本机 jj 的未推送工作层影响。
 
 ## 3. 成为可发布库还应补什么
+
+本节是调研时的缺口清单。除 PyPI 首发（第 5 项）外，第 1–4 项已在 2026-11-16 实施；
+保留原文用于说明当时的判断。当前发行配置以根 [`pyproject.toml`](../pyproject.toml) 为准。
 
 当前发行物为 `buqi-0.1.0-py3-none-any.whl` 与 `buqi-0.1.0.tar.gz`，无需添加 `setup.py`。
 Buqi wheel 自身没有二进制扩展，但依赖 eclipse-zenoh 的平台支持，不能据此承诺全平台可用。
@@ -122,7 +136,7 @@ PyPI/Warehouse 拒绝。[U1][P1] 让应用显式选择厂商 SDK 来源，是当
 
 ### 4.2 CycloneDDS 版本冲突，但 Buqi 运行依赖并未冲突
 
-本地 `dev` 要求 `>=11.1.0`，Unitree 要求 `==0.10.2`，无交集。
+本地 `dds` 验收组要求 `>=11.1.0`，Unitree 要求 `==0.10.2`，无交集。
 临时项目执行 `uv add --no-sync` 实测解析失败；只是解析试验，没有实际安装 Unitree。
 uv 通常联合解析各 dependency group/extra，因此单纯移动到另一个默认未安装的组并不能解决。[U4]
 

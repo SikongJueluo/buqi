@@ -1,0 +1,63 @@
+[project]
+name = "buqi"
+dynamic = ["version"]
+description = "Buqi robot SDK - unified robot interface over Zenoh"
+readme = "sdk/python/README.md"
+license = "Apache-2.0"
+license-files = ["LICENSE"]
+requires-python = ">=3.12"
+classifiers = [
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Programming Language :: Python :: 3.15",
+    "Typing :: Typed",
+]
+dependencies = [
+    # 官方 zenoh-python（Rust 实现的 Python 绑定），与 Rust 侧 zenoh 1.10.x 对齐
+    "eclipse-zenoh>=1.10.2,<2",
+]
+
+[project.urls]
+Homepage = "https://github.com/SikongJueluo/buqi"
+Repository = "https://github.com/SikongJueluo/buqi"
+Issues = "https://github.com/SikongJueluo/buqi/issues"
+Documentation = "https://github.com/SikongJueluo/buqi/blob/main/sdk/python/README.md"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.version]
+path = "sdk/python/src/buqi/__init__.py"
+
+[tool.hatch.build.targets.wheel]
+packages = ["sdk/python/src/buqi"]
+
+# sdist 只收录重建 wheel 与运行 Python 检查所需的内容，避免把 Rust workspace、
+# 整套文档或构建缓存带进发行包。only-include 同时阻止从根目录继续遍历。
+[tool.hatch.build.targets.sdist]
+only-include = [
+    "LICENSE",
+    "pyproject.toml",
+    "sdk/python/README.md",
+    "sdk/python/src/buqi",
+    "sdk/python/tests/test_connect.py",
+    "sdk/python/tests/test_media.py",
+    "examples/loopback.py",
+]
+
+[dependency-groups]
+dev = ["pytest>=9.2.0"]
+# 只有 DDS 验收需要；普通开发与测试不安装，避免把 DDS 运行环境带进默认环境。
+dds = ["cyclonedds>=11.1.0"]
+
+[tool.pytest.ini_options]
+testpaths = ["sdk/python/tests"]
+
+# 公开基线固定为官方 PyPI；不修改用户级镜像或代理配置。
+[[tool.uv.index]]
+name = "pypi"
+url = "https://pypi.org/simple"
+default = true

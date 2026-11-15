@@ -1,0 +1,41 @@
+name: Python
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  pytest:
+    name: pytest (CPython ${{ matrix.python }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ["3.12", "3.13", "3.14", "3.15"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v7
+        with:
+          version: "0.13.4"
+          python-version: ${{ matrix.python }}
+          enable-cache: true
+      # --locked 在锁文件与 manifest 不一致时失败，不用 --frozen 掩盖过期锁。
+      - run: uv lock --check
+      - run: uv sync --locked --python ${{ matrix.python }}
+      - run: uv run --locked --python ${{ matrix.python }} python -m pytest -q
+
+  dist:
+    name: wheel and sdist
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v7
+        with:
+          version: "0.13.4"
+          python-version: "3.13"
+          enable-cache: true
+      - run: bash scripts/check-python-dist.sh

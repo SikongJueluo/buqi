@@ -3,9 +3,9 @@
 先以前台方式启动网关（``buqi server``），把 ENDPOINT 换成启动输出中的
 ``tcp/...`` 端点；消息 key 也按实际发布的 topic 修改。
 
-运行（仓库根目录）::
+运行（仓库根目录，先执行 ``uv sync``）::
 
-    cd sdk/python && uv run python ../../examples/subscribe.py
+    uv run python examples/subscribe.py
 """
 
 import buqi

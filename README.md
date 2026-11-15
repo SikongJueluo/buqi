@@ -69,7 +69,8 @@ MQTT、ZMQ 等其他协议的接入仍需各自的桥接或适配，不属于当
 
 ## 当前状态
 
-- 已建立 Rust workspace、Python SDK 包结构及 Nix + devenv 开发环境。
+- 已建立 Rust workspace、根目录 Python 项目（Hatchling wheel/sdist、Python >=3.12）
+  及 Nix + devenv 开发环境。
 - 网关首版已实现：`buqi server` 前台启动 Zenoh Router 与 DDS 插件，
   自动选择 Linux 私有 IPv4 与 `127.0.0.1`，默认 TCP 7447，可用 TOML 覆盖监听端点与 DDS 选项。
   启动契约与限制见[网关文档](docs/gateway.md)。
@@ -81,6 +82,8 @@ MQTT、ZMQ 等其他协议的接入仍需各自的桥接或适配，不属于当
 - 可选浏览器 WebRTC 分支已实现：观看者连接时才解码/转码，编码器显式配置，
   WebRTC 故障不影响 JPEG 通道；具体浏览器会话尚未验证。
 - 仓库内含本地模拟 DDS 发布端与端到端验收（`just acceptance`），不连接实体机器人。
+- Python SDK 可作为独立库构建、安装和从 GitHub 引用；CI 覆盖 Linux x86_64 的
+  CPython 3.12–3.15 测试与 wheel/sdist 检查，尚未发布 PyPI。
 - 机器人 Adapter、统一 API 与 Rust SDK 能力尚未实现。媒体模块未在实体相机、
   真实浏览器或 PC2 上验证。
 
@@ -107,13 +110,20 @@ cargo run -p buqi-cli -- server --config examples/buqi.toml
 `device` 换成实际的 `/dev/v4l/by-id/...`，再以前面同样的方式启动。相机必须原生输出
 MJPEG，且启动前没有旧进程占用设备；配置与图片协议见[相机媒体](docs/media.md)。
 
-另开终端，用 Python SDK 连接并订阅：
+另开终端，在仓库根目录同步 Python 环境：
 
 ```sh
-cd sdk/python
 uv sync
 uv run python -c "import buqi; print(buqi.__version__)"
 ```
+
+在其他项目中直接引用本仓库（开发阶段）：
+
+```sh
+uv add "git+https://github.com/SikongJueluo/buqi.git" --branch main
+```
+
+连接与订阅：
 
 ```python
 import buqi
@@ -124,7 +134,8 @@ with buqi.connect("tcp/127.0.0.1:7447") as session:
         print(sample.key_expr, sample.payload.to_bytes().hex())
 ```
 
-可运行版本见 [`examples/subscribe.py`](examples/subscribe.py)。DDS 插件默认启动；
+可运行版本见 [`examples/subscribe.py`](examples/subscribe.py)；不依赖网关的安装冒烟检查见
+[`examples/loopback.py`](examples/loopback.py)。DDS 插件默认启动；
 没有机器人在线不影响网关运行，但也不会自动出现机器人数据。
 
 ## 文档与开发

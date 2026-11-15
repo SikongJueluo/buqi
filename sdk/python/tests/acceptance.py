@@ -13,7 +13,7 @@ DDS 只使用测试 domain 199，并把两端限制在 127.0.0.1，不连接实�
 用法（仓库根目录）::
 
     cargo build --workspace
-    cd sdk/python && uv run python tests/acceptance.py
+    uv run --group dds python sdk/python/tests/acceptance.py
 
 或直接运行 ``just acceptance``。
 """

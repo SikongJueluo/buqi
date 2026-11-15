@@ -3,9 +3,9 @@
 先启用媒体模块启动网关（配置见 ``examples/buqi-camera.toml``），
 把 ENDPOINT 换成启动输出中的 ``tcp/...`` 端点，CAMERA 换成配置里的相机 id。
 
-运行（仓库根目录）::
+运行（仓库根目录，先执行 ``uv sync``）::
 
-    cd sdk/python && uv run python ../../examples/camera_snapshot.py
+    uv run python examples/camera_snapshot.py
 
 示例只打印元数据与 JPEG 大小，不写文件、不解码图片。
 """

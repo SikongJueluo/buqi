@@ -10,10 +10,11 @@
 | 准备环境、修改代码、选择 just 任务或执行验证 | [开发指南](DEVELOPMENT.md) |
 | 修改某个 crate 或 SDK，判断代码归属 | [开发指南：模块职责与边界](DEVELOPMENT.md#模块职责与边界) |
 | 启动网关、配置监听地址或排查 DDS 启动 | [网关启动与配置](gateway.md) |
+| 安装 Python SDK、查看对外包说明 | [Python SDK README](../sdk/python/README.md) |
 | 启用相机媒体、使用单帧/观测接口或排查媒体故障 | [相机媒体](media.md) |
 | 调研 Server 启动、监听地址输出与可达性边界 | [Server 网络调研](server-network-research.md) |
 | 查看相机方案的早期调研与出处（不是最终契约） | [摄像头适配调研](camera-adaptation-research.md) |
-| 了解 Python SDK 现状、uv Git 安装与宇树适配路线（不是最终契约） | [Python SDK 调研](python-sdk-research.md) |
+| 了解 Python SDK 分发与宇树适配路线（迁移前调研，当前用法见 SDK README） | [Python SDK 调研](python-sdk-research.md) |
 | 作为 Agent 开始工作，确认阅读入口与操作边界 | [AGENTS.md](../AGENTS.md) |
 | 新增、拆分或重组文档 | 本文的组织与写作约定 |
 
