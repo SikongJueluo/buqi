@@ -1,0 +1,45 @@
+name: Integration
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  containers:
+    name: 多容器模拟通信验收 (Linux x86_64)
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - uses: cachix/install-nix-action@v31
+        with:
+          extra_nix_config: |
+            experimental-features = nix-command flakes
+      - uses: cachix/cachix-action@v16
+        with:
+          name: devenv
+      - name: 安装 devenv
+        shell: bash
+        run: nix profile add nixpkgs#devenv
+      # 网关镜像沿用 devenv 锁定的 Nix 依赖与本次构建的二进制，必须在同一开发环境里构建。
+      - name: 运行多容器验收
+        shell: devenv shell -- bash -e {0}
+        env:
+          # 托管 runner 只提供 Docker；本地默认使用 Podman。
+          CONTAINER_RUNTIME: docker
+        run: bash scripts/integration-acceptance.sh
+      - name: 上传诊断产物
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: integration-report
+          path: |
+            target/acceptance/runs/**/report.json
+            target/acceptance/runs/**/logs/*.log
+          if-no-files-found: warn
+          retention-days: 14

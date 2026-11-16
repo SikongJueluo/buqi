@@ -1,0 +1,69 @@
+# 多容器模拟通信验收用的 Python 3.12 镜像。
+#
+# 固定官方宇树 SDK 提交与其依赖（cyclonedds==0.10.2 需要从源码构建的 CycloneDDS C 库），
+# 并安装本次构建的 Buqi wheel。模拟发布端与订阅端共用该镜像，只用于 Linux x86_64
+# 的本地/CI 验收，不是发行物。
+#
+# 构建上下文由 scripts/integration-acceptance.sh 准备：目录里只有本次构建的 buqi wheel。
+
+FROM docker.io/library/python:3.12-slim AS cyclonedds
+
+# 宇树 SDK 固定提交；CycloneDDS 版本与其 setup.py 要求一致。
+ARG CYCLONEDDS_VERSION=0.10.2
+ARG UNITREE_SDK_COMMIT=814556d15970dd2ecf1c9984e845ca02ab07e206
+
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends \
+      build-essential ca-certificates cmake curl git \
+ && rm -rf /var/lib/apt/lists/*
+
+# CycloneDDS 0.10.2 的 Python 绑定用 ctypes 加载 libddsc，因此 C 库必须留在运行镜像中。
+RUN curl -fsSL "https://github.com/eclipse-cyclonedds/cyclonedds/archive/refs/tags/${CYCLONEDDS_VERSION}.tar.gz" \
+      -o /tmp/cyclonedds.tar.gz \
+ && mkdir -p /src \
+ && tar -xzf /tmp/cyclonedds.tar.gz -C /src --strip-components=1 \
+ && cmake -S /src -B /build \
+      -DCMAKE_INSTALL_PREFIX=/opt/cyclonedds \
+      -DCMAKE_BUILD_TYPE=Release \
+      -DBUILD_EXAMPLES=OFF \
+      -DBUILD_TESTING=OFF \
+      -DBUILD_DOC=OFF \
+      -DENABLE_SSL=OFF \
+      -DENABLE_SECURITY=OFF \
+ && cmake --build /build --parallel \
+ && cmake --install /build \
+ && rm -rf /src /build /tmp/cyclonedds.tar.gz
+
+ENV CYCLONEDDS_HOME=/opt/cyclonedds \
+    LD_LIBRARY_PATH=/opt/cyclonedds/lib
+
+# 预构建 wheel：cyclonedds 0.10.2 只发布到 CPython 3.10，3.12 上必须现场编译；
+# numpy/opencv 固定版本，避免宇树 SDK 的宽松约束随上游漂移。
+FROM cyclonedds AS wheels
+
+RUN pip wheel --no-cache-dir --wheel-dir /wheels "cyclonedds==0.10.2" \
+ && pip wheel --no-cache-dir --wheel-dir /wheels \
+      "git+https://github.com/unitreerobotics/unitree_sdk2_python@${UNITREE_SDK_COMMIT}" \
+      "numpy==1.26.4" \
+      "opencv-python==4.10.0.84"
+
+FROM docker.io/library/python:3.12-slim
+
+# opencv-python（宇树 SDK 的硬依赖）在导入时需要系统 libGL。
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends libgl1 libglib2.0-0 \
+ && rm -rf /var/lib/apt/lists/*
+
+COPY --from=cyclonedds /opt/cyclonedds /opt/cyclonedds
+COPY --from=wheels /wheels /tmp/wheels
+COPY *.whl /tmp/buqi/
+
+ENV CYCLONEDDS_HOME=/opt/cyclonedds \
+    LD_LIBRARY_PATH=/opt/cyclonedds/lib \
+    PYTHONUNBUFFERED=1
+
+RUN pip install --no-cache-dir /tmp/buqi/*.whl /tmp/wheels/*.whl \
+ && rm -rf /tmp/wheels /tmp/buqi
+
+# 只做一次导入检查：镜像可用性不依赖运行期的 DDS 网络。
+RUN python -c "import buqi, cyclonedds, numpy, cv2, unitree_sdk2py.core.channel; print(buqi.__version__)"

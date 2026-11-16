@@ -81,9 +81,12 @@ MQTT、ZMQ 等其他协议的接入仍需各自的桥接或适配，不属于当
   默认交付未解码 JPEG。协议与故障语义见[相机媒体](docs/media.md)。
 - 可选浏览器 WebRTC 分支已实现：观看者连接时才解码/转码，编码器显式配置，
   WebRTC 故障不影响 JPEG 通道；具体浏览器会话尚未验证。
-- 仓库内含本地模拟 DDS 发布端与端到端验收（`just acceptance`），不连接实体机器人。
+- 仓库内含本地模拟 DDS 发布端与端到端验收（`just acceptance`），以及用官方宇树 SDK
+  发布 G1 状态的多容器验收（`just test-integration`）；两者都不连接实体机器人。
+  统一入口 `just test` 汇总 Rust、Python、发行物与两类验收。
 - Python SDK 可作为独立库构建、安装和从 GitHub 引用；CI 覆盖 Linux x86_64 的
-  CPython 3.12–3.15 测试与 wheel/sdist 检查，尚未发布 PyPI。
+  CPython 3.12–3.15 测试与 wheel/sdist 检查，另有独立的多容器集成作业
+  （尚未在托管 runner 上实际执行），尚未发布 PyPI。
 - 机器人 Adapter、统一 API 与 Rust SDK 能力尚未实现。媒体模块未在实体相机、
   真实浏览器或 PC2 上验证。
 

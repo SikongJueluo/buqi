@@ -47,6 +47,15 @@ acceptance:
     cargo build --workspace
     uv run --group dds python sdk/python/tests/acceptance.py
 
+# 多容器模拟通信验收：隔离的机器人侧/应用侧网络、真实网关与官方宇树 G1 消息。
+test-integration:
+    bash scripts/integration-acceptance.sh
+
+# 统一验收入口：Rust 测试、Python 测试、发行物检查、本地回环验收与多容器验收。
+# 独立检查互相不阻塞；依赖未通过的检查标为 NOT RUN，任一失败返回非零。
+test:
+    bash scripts/test-all.sh
+
 # ── Dev-time fix commands (modify files — NOT for CI/Harness) ──
 
 fix:
