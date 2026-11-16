@@ -43,6 +43,7 @@ uv run python -c "import buqi; print(buqi.__version__)"
 | `just quality` | Rust 改动完成后的检查 | 格式检查、Clippy（警告视为错误）、Rust 测试；不含 Python 与端到端验收 |
 | `just test-python` | 修改 Python SDK 后 | 在仓库根目录运行 pytest；覆盖 `buqi.connect` 的失败语义与媒体行为，不需要网关 |
 | `just check-python-dist` | 修改打包配置或发布前 | 构建 wheel/sdist、从 sdist 重建、干净安装并运行回环示例；产物留在 `target/python-dist` |
+| `just ci-act [版本]` | 本地复现 GitHub Actions 的 Python 作业 | 需要 `act` 与 Docker/Podman；默认逐版本串行跑 3.12–3.15，再跑 `dist` 作业；传版本号只跑对应矩阵项 |
 | `just acceptance` | 跨进程闭环验收 | 构建 workspace 并安装 `dds` 依赖组，启动真实网关进程与本地模拟 DDS 发布端；DDS 限制在回环与测试 domain 199 |
 | `just fix` | 本地自动修正 | 格式化并执行 Clippy 自动修复，会修改源码，完成后检查差异 |
 | `just watch` | 开发中持续检查 | 监听 `crates/`，触发 Rust workspace 编译检查 |
@@ -50,6 +51,8 @@ uv run python -c "import buqi; print(buqi.__version__)"
 - `quality` 不包含 doctest、Python、实机通信或功能验收；各步骤失败会中止任务。
 - `check-python-dist` 使用临时虚拟环境与官方 PyPI，不借用仓库 `.venv` 或开发组；
   只验证 Linux x86_64 上的实际结果，不代表其他平台。
+- `ci-act` 在本地容器中执行 workflow；act 的 action 缓存不能安全并发 matrix，配方逐版本调用。
+  Podman 用户需先设置 `DOCKER_HOST`。它不能替代 GitHub 托管 runner、权限与缓存环境的真实验证。
 - `acceptance` 会临时占用本机 TCP 端口并启动子进程；不访问外部网络，也不连接实体机器人。
 - `check`、`quality` 会产生构建缓存；依赖配置变化时，Cargo 也可能更新锁文件。
 - `fix` 用于本地修正，不作为只读检查或 CI 入口；修正后仍需运行检查。

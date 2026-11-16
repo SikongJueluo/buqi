@@ -19,6 +19,29 @@ test-python:
 check-python-dist:
     bash scripts/check-python-dist.sh
 
+# 本地用 act 跑 GitHub Actions 的 Python 测试矩阵；默认全部版本后再跑 dist。
+ci-act version="all":
+    #!/usr/bin/env bash
+    # act 的 action 缓存不能安全并发 matrix，按版本逐个调用；jj 的 @ 是 detached
+    # HEAD，显式给本地事件一个分支名，避免 act 反复告警。
+    set -euo pipefail
+
+    if [[ "{{version}}" == "all" ]]; then
+        versions=(3.12 3.13 3.14 3.15)
+    else
+        versions=("{{version}}")
+    fi
+
+    ref=(--env GITHUB_REF=refs/heads/ci-act --env GITHUB_REF_NAME=ci-act --env GITHUB_REF_TYPE=branch)
+
+    for version in "${versions[@]}"; do
+        act push -j pytest "${ref[@]}" --matrix "python:${version}"
+    done
+
+    if [[ "{{version}}" == "all" ]]; then
+        act push -j dist "${ref[@]}"
+    fi
+
 # 端到端验收：真实网关进程 + 本地模拟 DDS 发布端 + Python SDK 订阅。
 acceptance:
     cargo build --workspace
