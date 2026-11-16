@@ -23,6 +23,8 @@ in {
     cmake
     libclang
     pkg-config
+    # workflow
+    act
     # gstreamer crate（gstreamer-rs）包装系统 GStreamer；glib 供 glib-sys
     # 等 bindings 解析 glib-2.0.pc。
     gst_all_1.gstreamer
@@ -50,6 +52,9 @@ in {
     if command -v clang >/dev/null 2>&1; then
       export BINDGEN_EXTRA_CLANG_ARGS="''${BINDGEN_EXTRA_CLANG_ARGS:-} -isystem $(clang -print-resource-dir)/include -isystem ${lib.getDev pkgs.glibc}/include"
     fi
+
+    # using podman with act
+    export DOCKER_HOST="unix://$XDG_RUNTIME_DIR/podman/podman.sock"
   '';
 
   # https://devenv.sh/languages/
