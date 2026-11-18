@@ -13,6 +13,7 @@
 | 了解多容器模拟通信验收的拓扑、判定标准与产物 | [多容器模拟通信验收](integration-acceptance.md) |
 | 安装 Python SDK、查看对外包说明 | [Python SDK README](../sdk/python/README.md) |
 | 启用相机媒体、使用单帧/观测接口或排查媒体故障 | [相机媒体](media.md) |
+| 声明组合式 Robot、理解发现/绑定/执行与资源语义 | [组合式 Robot 接口](robot-composition.md) |
 | 调研 Server 启动、监听地址输出与可达性边界 | [Server 网络调研](server-network-research.md) |
 | 查看相机方案的早期调研与出处（不是最终契约） | [摄像头适配调研](camera-adaptation-research.md) |
 | 了解 Python SDK 分发与宇树适配路线（迁移前调研，当前用法见 SDK README） | [Python SDK 调研](python-sdk-research.md) |

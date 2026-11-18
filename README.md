@@ -63,7 +63,7 @@ MQTT、ZMQ 等其他协议的接入仍需各自的桥接或适配，不属于当
   原生 DDS SDK 仍需要对应的 DDS 通信环境，不能仅凭普通 Zenoh Session 自动接入；
   客户端侧的桥接与配置应以实际验证的部署方式为准。
 - **统一接口**：由 Buqi SDK 内的 Adapter 封装机器人能力，面向应用提供一致的接口语义。
-  具体 API 尚未确定，当前没有可直接使用的 `Robot` 接口。
+  组合式 `Robot` 接口已有纯模拟切片；真实 Adapter 尚未实现，接口仍可能调整。
 
 网关连通不代表具备控制权仲裁或断线保护；实机控制仍需机器人本地的安全机制。
 
@@ -75,7 +75,9 @@ MQTT、ZMQ 等其他协议的接入仍需各自的桥接或适配，不属于当
   自动选择 Linux 私有 IPv4 与 `127.0.0.1`，默认 TCP 7447，可用 TOML 覆盖监听端点与 DDS 选项。
   启动契约与限制见[网关文档](docs/gateway.md)。
 - Python SDK 提供 `buqi.connect(endpoint)`，返回官方 `eclipse-zenoh` Session；
-  订阅、收发与载荷处理沿用官方 API，尚未提供统一 `Robot` 接口。
+  订阅、收发与载荷处理沿用官方 API。
+- 组合式 `Robot` 声明、发现与显式绑定接口已有纯内存模拟实现：类型化部件/能力、
+  有界队列、`enqueue`/`run`、执行结果与资源互斥已可运行；没有真实机器人 Adapter。
 - 可选媒体模块已实现：相机 V4L2 MJPEG 由 GStreamer 唯一采集，原始 JPEG 经 Zenoh
   提供单帧查询与默认 5 Hz 持续观测；Python SDK 提供 `buqi.snapshot` / `buqi.frames`，
   默认交付未解码 JPEG。协议与故障语义见[相机媒体](docs/media.md)。
@@ -87,8 +89,8 @@ MQTT、ZMQ 等其他协议的接入仍需各自的桥接或适配，不属于当
 - Python SDK 可作为独立库构建、安装和从 GitHub 引用；CI 覆盖 Linux x86_64 的
   CPython 3.12–3.15 测试与 wheel/sdist 检查，另有独立的多容器集成作业
   （尚未在托管 runner 上实际执行），尚未发布 PyPI。
-- 机器人 Adapter、统一 API 与 Rust SDK 能力尚未实现。媒体模块未在实体相机、
-  真实浏览器或 PC2 上验证。
+- 真实机器人 Adapter、实机控制、跨设备单位/坐标系契约与 Rust SDK 能力尚未实现；
+  组合式接口目前只有模拟 Adapter。媒体模块未在实体相机、真实浏览器或 PC2 上验证。
 
 下一步先接入首个机器人 Adapter，再验证真实机器人网络中的发现与状态订阅链路；
 相机模块的实机验收需另行确认设备、旧进程占用与编码器条件。
@@ -147,6 +149,8 @@ with buqi.connect("tcp/127.0.0.1:7447") as session:
 - [开发指南](docs/DEVELOPMENT.md)：准备环境、使用 just 任务、理解模块边界与执行验证。
 - [相机媒体](docs/media.md)：启用 MJPEG 相机、图片 key/元数据、单帧与观测语义、
   故障恢复，以及 WebRTC 的当前状态。
+- [组合式 Robot 接口](docs/robot-composition.md)：声明部件与能力、显式绑定、
+  执行/队列/资源语义及当前模拟限制。
 
 ## 许可证
 

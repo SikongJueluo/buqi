@@ -72,7 +72,7 @@ uv run python -c "import buqi; print(buqi.__version__)"
 | `crates/buqi-core` | 网关配置、监听地址、Router/DDS 监督与可选媒体模块 | 收纳实际复用的逻辑，供 Server/CLI 共用；不把 binary crate 当库 |
 | `crates/buqi-server` | 网关程序入口，前台运行到 `Ctrl+C` | 薄入口，启动逻辑在 Core；不承载厂商 SDK 或机器人业务 |
 | `crates/buqi-cli` | 维护者命令入口，当前只有 `buqi server` | 负责参数与交互，复用 Core；不做后台服务管理或诊断命令 |
-| `sdk/python` | Python 客户端接口及机器人 Adapter；根 `pyproject.toml` / `uv.lock` 是发行与依赖配置 | `buqi.connect` 封装官方 `eclipse-zenoh` 并返回原生 Session；机器人适配留在客户端 |
+| `sdk/python` | Python 客户端接口及机器人 Adapter；根 `pyproject.toml` / `uv.lock` 是发行与依赖配置 | `buqi.connect` 封装官方 `eclipse-zenoh` 并返回原生 Session；组合式 Robot 目前只有纯模拟 Adapter，机器人适配留在客户端 |
 | `sdk/rust` | Rust 客户端接口 | 在 Python 接口稳定后对齐能力与语义，不要求调用形式完全相同 |
 | `examples` | 面向使用者的最小调用示例与配置样例 | 消费 SDK 的公开接口，不承载 SDK 实现 |
 
@@ -103,7 +103,9 @@ DDS 观察窗口内外的失败与 panic、Router 两客户端转发、端口占
 
 `just test-python` 验证连接失败语义、图片元数据解析、错误映射、单帧回复与
 “只保留最新帧”的观测队列；测试用进程内 Zenoh peer 充当服务端，不需要网关进程，
-也不证明真实网关的完整媒体链路。
+也不证明真实网关的完整媒体链路。组合接口测试使用纯内存模拟 Adapter，覆盖声明、
+显式绑定、必需/可选能力、资源互斥、排队/抢占、停止确认失败与断连；它不连接设备，
+也不验证真实控制链路。
 `just check-python-dist` 额外构建 wheel 与 sdist，从 sdist 重建 wheel，在干净虚拟环境
 安装标准 wheel，验证 `py.typed`、许可证与包元数据，并运行 `examples/loopback.py`。
 它不使用仓库 `.venv`、开发组或源码路径；产物在 `target/python-dist`，临时环境随即清理。

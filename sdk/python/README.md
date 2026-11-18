@@ -1,8 +1,8 @@
 # buqi Python SDK
 
 通过 Zenoh 连接 Buqi 网关（`buqi-server`，Zenoh Router + DDS 插件），
-以可插拔 Adapter 访问不同机器人。当前提供最小连接入口与相机图片通道，
-统一 `Robot` 接口尚未实现。
+以可插拔 Adapter 访问不同机器人。当前提供最小连接入口、相机图片通道，以及
+组合式 `Robot` 声明/绑定接口；后者只有纯内存模拟 Adapter，真实机器人适配尚未实现。
 
 ## 安装
 
@@ -59,6 +59,46 @@ with buqi.connect("tcp/192.168.1.20:7447") as session:
 - `frames` 的队列只保留最新一帧；`next` 默认 1 秒无新帧即抛 `CameraTimeout`。
 - `CameraFrame.jpeg` 是原始 JPEG 字节；`CameraFrame.metadata` 含会话、序号、尺寸与
   服务端接收时间。协议与新鲜度语义见[相机媒体文档](https://github.com/SikongJueluo/buqi/blob/main/docs/media.md)。
+
+## 组合式 Robot（模拟）
+
+用类型化部件与能力声明组合，再显式绑定发现到的候选：
+
+```python
+import asyncio
+
+import buqi
+from buqi.simulation import SimulatedAdapter, SimulatedDevice, SimulatedPart
+
+class Arm(buqi.Part):
+    trajectory: buqi.JointTrajectory
+    motors: buqi.MotorControl | None
+
+class MyRobot(buqi.Robot):
+    arm: Arm
+    camera: buqi.CameraPart | None
+
+async def main() -> None:
+    adapter = SimulatedAdapter(
+        SimulatedDevice("g1", (SimulatedPart("left_arm", joints=("j1", "j2")),))
+    )
+    devices = await buqi.discover(adapter)
+    robot = await MyRobot.bind(adapter, arm=devices[0].part("left_arm"))
+
+    async with robot.arm.trajectory.control() as control:
+        execution = await control.enqueue(
+            buqi.Trajectory(("j1", "j2"), (buqi.JointWaypoint((0.1, 0.2), 0.1),))
+        )
+        print((await execution.result()).state)
+
+asyncio.run(main())
+```
+
+- 必需能力缺失时绑定失败；`X | None` 缺失时属性为 `None`。
+- 发现与绑定都要求显式选择；不会自动挑第一个候选。
+- `enqueue` 排队、`run` 抢占；执行结果用 `await execution.result()` 取得。
+- 模拟 Adapter 不连接网关或实体机器人，执行语义与限制见
+  [组合式 Robot 接口](https://github.com/SikongJueluo/buqi/blob/main/docs/robot-composition.md)。
 
 ## 仓库内开发与验证
 
